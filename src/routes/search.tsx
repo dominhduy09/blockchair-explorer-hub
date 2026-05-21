@@ -21,9 +21,9 @@ export const Route = createFileRoute("/search")({
     if (!deps.q) return null;
     return context.queryClient.ensureQueryData(searchQuery(deps.q));
   },
-  head: ({ search }) => ({
+  head: ({ match }) => ({
     meta: [
-      { title: search.q ? `Search: ${search.q} — chainscope` : "Search — chainscope" },
+      { title: match.search?.q ? `Search: ${match.search.q} — chainscope` : "Search — chainscope" },
       { name: "description", content: "Search blocks, transactions, and addresses across chains." },
     ],
   }),
