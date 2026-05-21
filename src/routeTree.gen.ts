@@ -9,38 +9,138 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as ChainsRouteImport } from './routes/chains'
+import { Route as ChainRouteImport } from './routes/$chain'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ChainTransactionHashRouteImport } from './routes/$chain.transaction.$hash'
+import { Route as ChainBlockIdRouteImport } from './routes/$chain.block.$id'
+import { Route as ChainAddressAddrRouteImport } from './routes/$chain.address.$addr'
 
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChainsRoute = ChainsRouteImport.update({
+  id: '/chains',
+  path: '/chains',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChainRoute = ChainRouteImport.update({
+  id: '/$chain',
+  path: '/$chain',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChainTransactionHashRoute = ChainTransactionHashRouteImport.update({
+  id: '/transaction/$hash',
+  path: '/transaction/$hash',
+  getParentRoute: () => ChainRoute,
+} as any)
+const ChainBlockIdRoute = ChainBlockIdRouteImport.update({
+  id: '/block/$id',
+  path: '/block/$id',
+  getParentRoute: () => ChainRoute,
+} as any)
+const ChainAddressAddrRoute = ChainAddressAddrRouteImport.update({
+  id: '/address/$addr',
+  path: '/address/$addr',
+  getParentRoute: () => ChainRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$chain': typeof ChainRouteWithChildren
+  '/chains': typeof ChainsRoute
+  '/search': typeof SearchRoute
+  '/$chain/address/$addr': typeof ChainAddressAddrRoute
+  '/$chain/block/$id': typeof ChainBlockIdRoute
+  '/$chain/transaction/$hash': typeof ChainTransactionHashRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$chain': typeof ChainRouteWithChildren
+  '/chains': typeof ChainsRoute
+  '/search': typeof SearchRoute
+  '/$chain/address/$addr': typeof ChainAddressAddrRoute
+  '/$chain/block/$id': typeof ChainBlockIdRoute
+  '/$chain/transaction/$hash': typeof ChainTransactionHashRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$chain': typeof ChainRouteWithChildren
+  '/chains': typeof ChainsRoute
+  '/search': typeof SearchRoute
+  '/$chain/address/$addr': typeof ChainAddressAddrRoute
+  '/$chain/block/$id': typeof ChainBlockIdRoute
+  '/$chain/transaction/$hash': typeof ChainTransactionHashRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/$chain'
+    | '/chains'
+    | '/search'
+    | '/$chain/address/$addr'
+    | '/$chain/block/$id'
+    | '/$chain/transaction/$hash'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/$chain'
+    | '/chains'
+    | '/search'
+    | '/$chain/address/$addr'
+    | '/$chain/block/$id'
+    | '/$chain/transaction/$hash'
+  id:
+    | '__root__'
+    | '/'
+    | '/$chain'
+    | '/chains'
+    | '/search'
+    | '/$chain/address/$addr'
+    | '/$chain/block/$id'
+    | '/$chain/transaction/$hash'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ChainRoute: typeof ChainRouteWithChildren
+  ChainsRoute: typeof ChainsRoute
+  SearchRoute: typeof SearchRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chains': {
+      id: '/chains'
+      path: '/chains'
+      fullPath: '/chains'
+      preLoaderRoute: typeof ChainsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$chain': {
+      id: '/$chain'
+      path: '/$chain'
+      fullPath: '/$chain'
+      preLoaderRoute: typeof ChainRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,12 +148,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$chain/transaction/$hash': {
+      id: '/$chain/transaction/$hash'
+      path: '/transaction/$hash'
+      fullPath: '/$chain/transaction/$hash'
+      preLoaderRoute: typeof ChainTransactionHashRouteImport
+      parentRoute: typeof ChainRoute
+    }
+    '/$chain/block/$id': {
+      id: '/$chain/block/$id'
+      path: '/block/$id'
+      fullPath: '/$chain/block/$id'
+      preLoaderRoute: typeof ChainBlockIdRouteImport
+      parentRoute: typeof ChainRoute
+    }
+    '/$chain/address/$addr': {
+      id: '/$chain/address/$addr'
+      path: '/address/$addr'
+      fullPath: '/$chain/address/$addr'
+      preLoaderRoute: typeof ChainAddressAddrRouteImport
+      parentRoute: typeof ChainRoute
+    }
   }
 }
 
+interface ChainRouteChildren {
+  ChainAddressAddrRoute: typeof ChainAddressAddrRoute
+  ChainBlockIdRoute: typeof ChainBlockIdRoute
+  ChainTransactionHashRoute: typeof ChainTransactionHashRoute
+}
+
+const ChainRouteChildren: ChainRouteChildren = {
+  ChainAddressAddrRoute: ChainAddressAddrRoute,
+  ChainBlockIdRoute: ChainBlockIdRoute,
+  ChainTransactionHashRoute: ChainTransactionHashRoute,
+}
+
+const ChainRouteWithChildren = ChainRoute._addFileChildren(ChainRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChainRoute: ChainRouteWithChildren,
+  ChainsRoute: ChainsRoute,
+  SearchRoute: SearchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
