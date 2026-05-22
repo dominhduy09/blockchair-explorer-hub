@@ -6,8 +6,7 @@ import {
   getTransactionsList,
 } from "@/lib/blockchair.functions";
 
-  getTransactionsList,
-} from "@/lib/blockchair.functions";
+
 import { getChain, isValidChain } from "@/lib/chains";
 import { CopyHash } from "@/components/copy-hash";
 import { formatNumber, formatUsd, relativeTime } from "@/lib/format";
