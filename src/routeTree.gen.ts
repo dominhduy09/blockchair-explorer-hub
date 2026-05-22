@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as NewsRouteImport } from './routes/news'
 import { Route as ChainsRouteImport } from './routes/chains'
+import { Route as BroadcastRouteImport } from './routes/broadcast'
 import { Route as ChainRouteImport } from './routes/$chain'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChainTransactionHashRouteImport } from './routes/$chain.transaction.$hash'
@@ -22,9 +24,19 @@ const SearchRoute = SearchRouteImport.update({
   path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NewsRoute = NewsRouteImport.update({
+  id: '/news',
+  path: '/news',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChainsRoute = ChainsRouteImport.update({
   id: '/chains',
   path: '/chains',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BroadcastRoute = BroadcastRouteImport.update({
+  id: '/broadcast',
+  path: '/broadcast',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChainRoute = ChainRouteImport.update({
@@ -56,7 +68,9 @@ const ChainAddressAddrRoute = ChainAddressAddrRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$chain': typeof ChainRouteWithChildren
+  '/broadcast': typeof BroadcastRoute
   '/chains': typeof ChainsRoute
+  '/news': typeof NewsRoute
   '/search': typeof SearchRoute
   '/$chain/address/$addr': typeof ChainAddressAddrRoute
   '/$chain/block/$id': typeof ChainBlockIdRoute
@@ -65,7 +79,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$chain': typeof ChainRouteWithChildren
+  '/broadcast': typeof BroadcastRoute
   '/chains': typeof ChainsRoute
+  '/news': typeof NewsRoute
   '/search': typeof SearchRoute
   '/$chain/address/$addr': typeof ChainAddressAddrRoute
   '/$chain/block/$id': typeof ChainBlockIdRoute
@@ -75,7 +91,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$chain': typeof ChainRouteWithChildren
+  '/broadcast': typeof BroadcastRoute
   '/chains': typeof ChainsRoute
+  '/news': typeof NewsRoute
   '/search': typeof SearchRoute
   '/$chain/address/$addr': typeof ChainAddressAddrRoute
   '/$chain/block/$id': typeof ChainBlockIdRoute
@@ -86,7 +104,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$chain'
+    | '/broadcast'
     | '/chains'
+    | '/news'
     | '/search'
     | '/$chain/address/$addr'
     | '/$chain/block/$id'
@@ -95,7 +115,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$chain'
+    | '/broadcast'
     | '/chains'
+    | '/news'
     | '/search'
     | '/$chain/address/$addr'
     | '/$chain/block/$id'
@@ -104,7 +126,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$chain'
+    | '/broadcast'
     | '/chains'
+    | '/news'
     | '/search'
     | '/$chain/address/$addr'
     | '/$chain/block/$id'
@@ -114,7 +138,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ChainRoute: typeof ChainRouteWithChildren
+  BroadcastRoute: typeof BroadcastRoute
   ChainsRoute: typeof ChainsRoute
+  NewsRoute: typeof NewsRoute
   SearchRoute: typeof SearchRoute
 }
 
@@ -127,11 +153,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/news': {
+      id: '/news'
+      path: '/news'
+      fullPath: '/news'
+      preLoaderRoute: typeof NewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chains': {
       id: '/chains'
       path: '/chains'
       fullPath: '/chains'
       preLoaderRoute: typeof ChainsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/broadcast': {
+      id: '/broadcast'
+      path: '/broadcast'
+      fullPath: '/broadcast'
+      preLoaderRoute: typeof BroadcastRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$chain': {
@@ -189,9 +229,21 @@ const ChainRouteWithChildren = ChainRoute._addFileChildren(ChainRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ChainRoute: ChainRouteWithChildren,
+  BroadcastRoute: BroadcastRoute,
   ChainsRoute: ChainsRoute,
+  NewsRoute: NewsRoute,
   SearchRoute: SearchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
