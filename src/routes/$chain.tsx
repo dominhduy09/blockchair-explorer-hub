@@ -240,10 +240,8 @@ function MempoolPanel({ chain }: { chain: string }) {
   );
 }
 
-import { useQuery } from "@tanstack/react-query";
-function useFeed<T>(opts: ReturnType<typeof queryOptions<T>>) {
-  return useQuery(opts);
-}
+
+
 
 function Panel({
   title,
