@@ -11,24 +11,25 @@ import { formatNumber, formatUsd, relativeTime } from "@/lib/format";
 
 const chainStatsQuery = (chain: string) =>
   queryOptions({
-    queryKey: ["chain-stats", chain],
+    queryKey: ["chain-stats", chain] as const,
     queryFn: () => getChainStats({ data: { chain } }),
     staleTime: 30_000,
   });
 
 const blocksListQuery = (chain: string) =>
   queryOptions({
-    queryKey: ["blocks-list", chain],
+    queryKey: ["blocks-list", chain] as const,
     queryFn: () => getBlocksList({ data: { chain, limit: 10 } }),
     staleTime: 30_000,
   });
 
 const txListQuery = (chain: string, mempool: boolean) =>
   queryOptions({
-    queryKey: ["tx-list", chain, mempool],
+    queryKey: ["tx-list", chain, mempool] as const,
     queryFn: () => getTransactionsList({ data: { chain, mempool, limit: 10 } }),
     staleTime: 30_000,
   });
+
 
 export const Route = createFileRoute("/$chain")({
   head: ({ params }) => {
