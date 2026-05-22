@@ -184,7 +184,7 @@ function RecentBlocks({ chain }: { chain: string }) {
 }
 
 function RecentTransactions({ chain }: { chain: string }) {
-  const { data, isLoading, error } = useFeed(txListQuery(chain, false));
+  const { data, isLoading, error } = useQuery(txListQuery(chain, false));
   return (
     <Panel title="Recent transactions" loading={isLoading} error={error}>
       {data && data.length > 0 ? (
