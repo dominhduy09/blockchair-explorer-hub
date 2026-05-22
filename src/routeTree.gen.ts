@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as ChainsRouteImport } from './routes/chains'
 import { Route as BroadcastRouteImport } from './routes/broadcast'
@@ -22,6 +23,11 @@ import { Route as ChainAddressAddrRouteImport } from './routes/$chain.address.$a
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortfolioRoute = PortfolioRouteImport.update({
+  id: '/portfolio',
+  path: '/portfolio',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NewsRoute = NewsRouteImport.update({
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/broadcast': typeof BroadcastRoute
   '/chains': typeof ChainsRoute
   '/news': typeof NewsRoute
+  '/portfolio': typeof PortfolioRoute
   '/search': typeof SearchRoute
   '/$chain/address/$addr': typeof ChainAddressAddrRoute
   '/$chain/block/$id': typeof ChainBlockIdRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/broadcast': typeof BroadcastRoute
   '/chains': typeof ChainsRoute
   '/news': typeof NewsRoute
+  '/portfolio': typeof PortfolioRoute
   '/search': typeof SearchRoute
   '/$chain/address/$addr': typeof ChainAddressAddrRoute
   '/$chain/block/$id': typeof ChainBlockIdRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/broadcast': typeof BroadcastRoute
   '/chains': typeof ChainsRoute
   '/news': typeof NewsRoute
+  '/portfolio': typeof PortfolioRoute
   '/search': typeof SearchRoute
   '/$chain/address/$addr': typeof ChainAddressAddrRoute
   '/$chain/block/$id': typeof ChainBlockIdRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/broadcast'
     | '/chains'
     | '/news'
+    | '/portfolio'
     | '/search'
     | '/$chain/address/$addr'
     | '/$chain/block/$id'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/broadcast'
     | '/chains'
     | '/news'
+    | '/portfolio'
     | '/search'
     | '/$chain/address/$addr'
     | '/$chain/block/$id'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/broadcast'
     | '/chains'
     | '/news'
+    | '/portfolio'
     | '/search'
     | '/$chain/address/$addr'
     | '/$chain/block/$id'
@@ -141,6 +153,7 @@ export interface RootRouteChildren {
   BroadcastRoute: typeof BroadcastRoute
   ChainsRoute: typeof ChainsRoute
   NewsRoute: typeof NewsRoute
+  PortfolioRoute: typeof PortfolioRoute
   SearchRoute: typeof SearchRoute
 }
 
@@ -151,6 +164,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portfolio': {
+      id: '/portfolio'
+      path: '/portfolio'
+      fullPath: '/portfolio'
+      preLoaderRoute: typeof PortfolioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/news': {
@@ -232,6 +252,7 @@ const rootRouteChildren: RootRouteChildren = {
   BroadcastRoute: BroadcastRoute,
   ChainsRoute: ChainsRoute,
   NewsRoute: NewsRoute,
+  PortfolioRoute: PortfolioRoute,
   SearchRoute: SearchRoute,
 }
 export const routeTree = rootRouteImport
