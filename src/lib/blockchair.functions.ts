@@ -86,30 +86,90 @@ export const getAddress = createServerFn({ method: "GET" })
     return out ?? null;
   });
 
-// ---- Smart search: figure out what a query is and where to send the user ----
+// ---- Smart search: detect query type, probe likely chains in parallel ----
+// Blockchair does not expose a public cross-chain /search endpoint, so we
+// classify the query by format and probe each candidate chain's dashboards
+// endpoint. Any chain that returns non-null data is a hit.
+
+const EVM_CHAINS = [
+  "ethereum",
+  "polygon",
+  "bnb",
+  "base",
+  "arbitrum-one",
+  "optimism",
+  "avalanche",
+  "fantom",
+  "gnosis-chain",
+  "ethereum-classic",
+];
+const UTXO_CHAINS = ["bitcoin", "litecoin", "dogecoin", "bitcoin-cash", "dash", "zcash"];
+
+type Hit = { chain: string; type: "block" | "transaction" | "address"; query: string };
+
+async function probe(chain: string, type: Hit["type"], q: string): Promise<Hit | null> {
+  try {
+    const path = `/${chain}/dashboards/${type}/${encodeURIComponent(q)}`;
+    const out = await bcFetch(path, { limit: 1 });
+    const d = out?.data;
+    if (!d) return null;
+    // Blockchair returns { data: {} } or { data: { <key>: {...} } } when found,
+    // and { data: null } or { data: [] } when not.
+    if (Array.isArray(d) && d.length === 0) return null;
+    if (typeof d === "object" && Object.keys(d).length === 0) return null;
+    return { chain, type, query: q };
+  } catch {
+    return null;
+  }
+}
+
+function classify(q: string): { type: Hit["type"]; chains: string[] }[] {
+  const clean = q.trim();
+  // Pure digits → block height. Could be any chain; probe major ones.
+  if (/^\d+$/.test(clean)) {
+    return [{ type: "block", chains: [...UTXO_CHAINS, ...EVM_CHAINS] }];
+  }
+  // 0x + 64 hex → EVM tx or block hash
+  if (/^0x[0-9a-fA-F]{64}$/.test(clean)) {
+    return [
+      { type: "transaction", chains: EVM_CHAINS },
+      { type: "block", chains: EVM_CHAINS },
+    ];
+  }
+  // 0x + 40 hex → EVM address
+  if (/^0x[0-9a-fA-F]{40}$/.test(clean)) {
+    return [{ type: "address", chains: EVM_CHAINS }];
+  }
+  // Bare 64 hex → UTXO tx or block hash
+  if (/^[0-9a-fA-F]{64}$/.test(clean)) {
+    return [
+      { type: "transaction", chains: UTXO_CHAINS },
+      { type: "block", chains: UTXO_CHAINS },
+    ];
+  }
+  // Otherwise treat as address; probe UTXO + a few non-EVM L1s
+  return [
+    {
+      type: "address",
+      chains: [...UTXO_CHAINS, "solana", "tron", "ripple", "stellar", "cardano", "monero"],
+    },
+  ];
+}
+
 export const smartSearch = createServerFn({ method: "GET" })
   .inputValidator((input: { q: string }) => ({ q: z.string().trim().min(1).max(200).parse(input.q) }))
   .handler(async ({ data }) => {
     const q = data.q.trim();
+    const plan = classify(q);
+    const tasks: Promise<Hit | null>[] = [];
+    for (const { type, chains } of plan) {
+      for (const chain of chains) tasks.push(probe(chain, type, q));
+    }
     try {
-      const out = await bcFetch(`/search`, { q });
-      // Blockchair's /search returns { data: { <chain>: { ... } } } or similar.
-      // Normalize to a list of { chain, type, query } suggestions.
-      const results: { chain: string; type: string; query: string }[] = [];
-      const d = out?.data ?? {};
-      for (const [chain, blob] of Object.entries<any>(d)) {
-        if (!blob || typeof blob !== "object") continue;
-        for (const [type, value] of Object.entries<any>(blob)) {
-          if (value == null) continue;
-          if (Array.isArray(value)) {
-            for (const v of value) results.push({ chain, type, query: String(v) });
-          } else {
-            results.push({ chain, type, query: String(value) });
-          }
-        }
-      }
+      const settled = await Promise.all(tasks);
+      const results = settled.filter((r): r is Hit => r !== null);
       return { query: q, results };
     } catch (err) {
-      return { query: q, results: [], error: (err as Error).message };
+      return { query: q, results: [] as Hit[], error: (err as Error).message };
     }
   });
