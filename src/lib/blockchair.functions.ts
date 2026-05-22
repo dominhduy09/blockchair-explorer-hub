@@ -6,7 +6,11 @@ const BASE = "https://api.blockchair.com";
 
 const chainSchema = z.enum(CHAIN_SLUGS as [string, ...string[]]);
 
-async function bcFetch(path: string, params: Record<string, string | number | undefined> = {}) {
+async function bcFetch(
+  path: string,
+  params: Record<string, string | number | undefined> = {},
+  init: RequestInit = {},
+) {
   const key = process.env.BLOCKCHAIR_API_KEY;
   const url = new URL(`${BASE}${path}`);
   for (const [k, v] of Object.entries(params)) {
@@ -15,7 +19,8 @@ async function bcFetch(path: string, params: Record<string, string | number | un
   if (key) url.searchParams.set("key", key);
 
   const res = await fetch(url.toString(), {
-    headers: { "User-Agent": "lovable-blockchair-explorer/1.0" },
+    ...init,
+    headers: { "User-Agent": "lovable-blockchair-explorer/1.0", ...(init.headers ?? {}) },
   });
   const text = await res.text();
   let json: any = null;
@@ -31,13 +36,15 @@ async function bcFetch(path: string, params: Record<string, string | number | un
   return json;
 }
 
-// ---- Global stats (all chains) ----
+// ============================================================================
+// Stats
+// ============================================================================
+
 export const getAllStats = createServerFn({ method: "GET" }).handler(async () => {
   const data = await bcFetch("/stats");
   return data?.data ?? {};
 });
 
-// ---- Chain-level stats ----
 export const getChainStats = createServerFn({ method: "GET" })
   .inputValidator((input: { chain: string }) => ({ chain: chainSchema.parse(input.chain) }))
   .handler(async ({ data }) => {
@@ -45,7 +52,10 @@ export const getChainStats = createServerFn({ method: "GET" })
     return out?.data ?? null;
   });
 
-// ---- Block ----
+// ============================================================================
+// Block + Transaction + Address dashboards
+// ============================================================================
+
 export const getBlock = createServerFn({ method: "GET" })
   .inputValidator((input: { chain: string; id: string }) => ({
     chain: chainSchema.parse(input.chain),
@@ -58,20 +68,22 @@ export const getBlock = createServerFn({ method: "GET" })
     return out ?? null;
   });
 
-// ---- Transaction ----
 export const getTransaction = createServerFn({ method: "GET" })
-  .inputValidator((input: { chain: string; hash: string }) => ({
+  .inputValidator((input: { chain: string; hash: string; privacy?: boolean }) => ({
     chain: chainSchema.parse(input.chain),
     hash: z.string().min(1).max(200).parse(input.hash),
+    privacy: Boolean(input.privacy),
   }))
   .handler(async ({ data }) => {
+    const params: Record<string, string> = {};
+    if (data.privacy) params["privacy-o-meter"] = "true";
     const out = await bcFetch(
       `/${data.chain}/dashboards/transaction/${encodeURIComponent(data.hash)}`,
+      params,
     );
     return out ?? null;
   });
 
-// ---- Address ----
 export const getAddress = createServerFn({ method: "GET" })
   .inputValidator((input: { chain: string; address: string; offset?: number }) => ({
     chain: chainSchema.parse(input.chain),
@@ -86,10 +98,180 @@ export const getAddress = createServerFn({ method: "GET" })
     return out ?? null;
   });
 
-// ---- Smart search: detect query type, probe likely chains in parallel ----
-// Blockchair does not expose a public cross-chain /search endpoint, so we
-// classify the query by format and probe each candidate chain's dashboards
-// endpoint. Any chain that returns non-null data is a hit.
+// ============================================================================
+// Infinitable lists: latest blocks, latest / mempool transactions
+// ============================================================================
+
+const limitSchema = z.number().int().min(1).max(100).default(20);
+
+export const getBlocksList = createServerFn({ method: "GET" })
+  .inputValidator((input: { chain: string; limit?: number }) => ({
+    chain: chainSchema.parse(input.chain),
+    limit: limitSchema.parse(input.limit ?? 20),
+  }))
+  .handler(async ({ data }) => {
+    const out = await bcFetch(`/${data.chain}/blocks`, { limit: data.limit });
+    return (out?.data ?? []) as any[];
+  });
+
+export const getTransactionsList = createServerFn({ method: "GET" })
+  .inputValidator(
+    (input: { chain: string; limit?: number; mempool?: boolean }) => ({
+      chain: chainSchema.parse(input.chain),
+      limit: limitSchema.parse(input.limit ?? 20),
+      mempool: Boolean(input.mempool),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const path = data.mempool
+      ? `/${data.chain}/mempool/transactions`
+      : `/${data.chain}/transactions`;
+    const out = await bcFetch(path, { limit: data.limit });
+    return (out?.data ?? []) as any[];
+  });
+
+// ============================================================================
+// Nodes
+// ============================================================================
+
+export const getNodes = createServerFn({ method: "GET" })
+  .inputValidator((input: { chain?: string }) => ({
+    chain: input.chain ? chainSchema.parse(input.chain) : undefined,
+  }))
+  .handler(async ({ data }) => {
+    const out = await bcFetch(data.chain ? `/${data.chain}/nodes` : `/nodes`);
+    return out?.data ?? null;
+  });
+
+// ============================================================================
+// Multi-chain portfolio
+// ============================================================================
+
+const addressEntrySchema = z
+  .string()
+  .min(3)
+  .max(200)
+  .regex(/^[a-z0-9-]+:[A-Za-z0-9]+$/, "Use blockchain:address format");
+
+export const getMultiAddresses = createServerFn({ method: "GET" })
+  .inputValidator((input: { addresses: string[] }) => ({
+    addresses: z.array(addressEntrySchema).min(1).max(100).parse(input.addresses),
+  }))
+  .handler(async ({ data }) => {
+    const joined = data.addresses.join(",");
+    const out = await bcFetch(`/multi/dashboards/addresses/${encodeURIComponent(joined)}`);
+    return out?.data ?? null;
+  });
+
+// ============================================================================
+// Broadcast raw transaction
+// ============================================================================
+
+const BROADCAST_CHAINS = [
+  "bitcoin",
+  "bitcoin-cash",
+  "ethereum",
+  "litecoin",
+  "dogecoin",
+  "dash",
+  "groestlcoin",
+  "zcash",
+] as const;
+
+export const broadcastTx = createServerFn({ method: "POST" })
+  .inputValidator((input: { chain: string; data: string }) => ({
+    chain: z.enum(BROADCAST_CHAINS).parse(input.chain),
+    raw: z.string().min(2).max(200_000).parse(input.data),
+  }))
+  .handler(async ({ data }) => {
+    const body = new URLSearchParams({ data: data.raw });
+    const out = await bcFetch(
+      `/${data.chain}/push/transaction`,
+      {},
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body,
+      },
+    );
+    return out ?? null;
+  });
+
+// ============================================================================
+// News
+// ============================================================================
+
+const NEWS_LANGS = [
+  "en",
+  "es",
+  "fr",
+  "de",
+  "it",
+  "pt",
+  "nl",
+  "ru",
+  "tr",
+  "ar",
+  "fa",
+  "jp",
+  "ko",
+  "zh",
+] as const;
+
+export const getNews = createServerFn({ method: "GET" })
+  .inputValidator((input: { language?: string; limit?: number }) => ({
+    language: z.enum(NEWS_LANGS).default("en").parse(input.language ?? "en"),
+    limit: limitSchema.parse(input.limit ?? 30),
+  }))
+  .handler(async ({ data }) => {
+    const out = await bcFetch(`/news`, {
+      q: `language(${data.language})`,
+      limit: data.limit,
+    });
+    return (out?.data ?? []) as any[];
+  });
+
+// ============================================================================
+// Tools: halvening countdown, available ranges
+// ============================================================================
+
+export const getHalvening = createServerFn({ method: "GET" }).handler(async () => {
+  const out = await bcFetch(`/tools/halvening`);
+  return out?.data ?? {};
+});
+
+export const getRange = createServerFn({ method: "GET" }).handler(async () => {
+  const out = await bcFetch(`/range`);
+  return out?.data ?? {};
+});
+
+// ============================================================================
+// Raw block / transaction
+// ============================================================================
+
+export const getRawBlock = createServerFn({ method: "GET" })
+  .inputValidator((input: { chain: string; id: string }) => ({
+    chain: chainSchema.parse(input.chain),
+    id: z.string().min(1).max(200).parse(input.id),
+  }))
+  .handler(async ({ data }) => {
+    const out = await bcFetch(`/${data.chain}/raw/block/${encodeURIComponent(data.id)}`);
+    return out?.data ?? null;
+  });
+
+export const getRawTransaction = createServerFn({ method: "GET" })
+  .inputValidator((input: { chain: string; hash: string }) => ({
+    chain: chainSchema.parse(input.chain),
+    hash: z.string().min(1).max(200).parse(input.hash),
+  }))
+  .handler(async ({ data }) => {
+    const out = await bcFetch(`/${data.chain}/raw/transaction/${encodeURIComponent(data.hash)}`);
+    return out?.data ?? null;
+  });
+
+// ============================================================================
+// Smart search: classify query and probe candidate chains in parallel
+// ============================================================================
 
 const EVM_CHAINS = [
   "ethereum",
@@ -113,8 +295,6 @@ async function probe(chain: string, type: Hit["type"], q: string): Promise<Hit |
     const out = await bcFetch(path, { limit: 1 });
     const d = out?.data;
     if (!d) return null;
-    // Blockchair returns { data: {} } or { data: { <key>: {...} } } when found,
-    // and { data: null } or { data: [] } when not.
     if (Array.isArray(d) && d.length === 0) return null;
     if (typeof d === "object" && Object.keys(d).length === 0) return null;
     return { chain, type, query: q };
@@ -125,29 +305,24 @@ async function probe(chain: string, type: Hit["type"], q: string): Promise<Hit |
 
 function classify(q: string): { type: Hit["type"]; chains: string[] }[] {
   const clean = q.trim();
-  // Pure digits → block height. Could be any chain; probe major ones.
   if (/^\d+$/.test(clean)) {
     return [{ type: "block", chains: [...UTXO_CHAINS, ...EVM_CHAINS] }];
   }
-  // 0x + 64 hex → EVM tx or block hash
   if (/^0x[0-9a-fA-F]{64}$/.test(clean)) {
     return [
       { type: "transaction", chains: EVM_CHAINS },
       { type: "block", chains: EVM_CHAINS },
     ];
   }
-  // 0x + 40 hex → EVM address
   if (/^0x[0-9a-fA-F]{40}$/.test(clean)) {
     return [{ type: "address", chains: EVM_CHAINS }];
   }
-  // Bare 64 hex → UTXO tx or block hash
   if (/^[0-9a-fA-F]{64}$/.test(clean)) {
     return [
       { type: "transaction", chains: UTXO_CHAINS },
       { type: "block", chains: UTXO_CHAINS },
     ];
   }
-  // Otherwise treat as address; probe UTXO + a few non-EVM L1s
   return [
     {
       type: "address",
