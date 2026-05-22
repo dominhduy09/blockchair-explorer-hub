@@ -155,7 +155,7 @@ function ChainPage() {
 }
 
 function RecentBlocks({ chain }: { chain: string }) {
-  const { data, isLoading, error } = useFeed(blocksListQuery(chain));
+  const { data, isLoading, error } = useQuery(blocksListQuery(chain));
   return (
     <Panel title="Latest blocks" loading={isLoading} error={error}>
       {data && data.length > 0 ? (
