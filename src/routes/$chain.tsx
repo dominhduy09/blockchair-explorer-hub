@@ -213,7 +213,7 @@ function RecentTransactions({ chain }: { chain: string }) {
 }
 
 function MempoolPanel({ chain }: { chain: string }) {
-  const { data, isLoading, error } = useFeed(txListQuery(chain, true));
+  const { data, isLoading, error } = useQuery(txListQuery(chain, true));
   return (
     <Panel title="Mempool (unconfirmed)" loading={isLoading} error={error}>
       {data && data.length > 0 ? (
