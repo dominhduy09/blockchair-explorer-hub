@@ -270,6 +270,58 @@ export const getRawTransaction = createServerFn({ method: "GET" })
   });
 
 // ============================================================================
+// Infinitable analytics queries
+// ============================================================================
+
+const INFINITABLE_TABLES = [
+  "blocks",
+  "transactions",
+  "outputs",
+  "mempool/transactions",
+  "mempool/outputs",
+  "uncles",
+  "calls",
+  "addresses",
+] as const;
+
+export const runInfinitable = createServerFn({ method: "GET" })
+  .inputValidator(
+    (input: {
+      chain: string;
+      table: string;
+      q?: string;
+      s?: string;
+      limit?: number;
+      offset?: number;
+      fields?: string;
+      aggregate?: string;
+    }) => ({
+      chain: chainSchema.parse(input.chain),
+      table: z.enum(INFINITABLE_TABLES).parse(input.table),
+      q: z.string().max(2000).optional().parse(input.q || undefined),
+      s: z.string().max(500).optional().parse(input.s || undefined),
+      limit: z.number().int().min(1).max(100).default(20).parse(input.limit ?? 20),
+      offset: z.number().int().min(0).max(1_000_000).default(0).parse(input.offset ?? 0),
+      fields: z.string().max(1000).optional().parse(input.fields || undefined),
+      aggregate: z.string().max(500).optional().parse(input.aggregate || undefined),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const out = await bcFetch(`/${data.chain}/${data.table}`, {
+      q: data.q,
+      s: data.s,
+      limit: data.limit,
+      offset: data.offset,
+      fields: data.fields,
+      aggregate: data.aggregate,
+    });
+    return {
+      rows: (out?.data ?? []) as any[],
+      context: out?.context ?? null,
+    };
+  });
+
+// ============================================================================
 // Smart search: classify query and probe candidate chains in parallel
 // ============================================================================
 
