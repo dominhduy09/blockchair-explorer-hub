@@ -107,12 +107,12 @@ function TxPage() {
       <div className="mt-4 flex flex-wrap gap-2">
         <Toggle
           on={privacy}
-          onClick={() => navigate({ search: (s) => ({ ...s, privacy: !privacy }) })}
+          onClick={() => navigate({ search: { privacy: !privacy, raw } })}
           label="Privacy-o-meter"
         />
         <Toggle
           on={raw}
-          onClick={() => navigate({ search: (s) => ({ ...s, raw: !raw }) })}
+          onClick={() => navigate({ search: { privacy, raw: !raw } })}
           label="Raw data"
         />
       </div>
