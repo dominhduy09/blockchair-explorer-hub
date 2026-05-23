@@ -27,6 +27,21 @@ export const Route = createFileRoute("/")({
 
 const FEATURED = ["bitcoin", "ethereum", "solana", "tron", "ripple", "bnb", "polygon", "litecoin"];
 
+const FEATURE_MAP: { to: string; title: string; desc: string; endpoint: string }[] = [
+  { to: "/", title: "Global dashboard", desc: "Live stats and market comparison across all supported chains.", endpoint: "GET /stats" },
+  { to: "/chains", title: "Chain directory", desc: "Browse every chain Blockchair lists, grouped by category.", endpoint: "static + /stats" },
+  { to: "/$chain", title: "Per-chain explorer", desc: "Price, mempool, blocks, fees, and latest activity per chain.", endpoint: "GET /{chain}/stats" },
+  { to: "/$chain/block/$id", title: "Block inspector", desc: "Full block payload with transactions and miner data.", endpoint: "GET /{chain}/dashboards/block/{id}" },
+  { to: "/$chain/transaction/$hash", title: "Transaction + privacy-o-meter", desc: "Decoded tx with inputs, outputs, fees and privacy score.", endpoint: "GET /{chain}/dashboards/transaction/{hash}" },
+  { to: "/$chain/address/$addr", title: "Address dashboard", desc: "Balance, tx history, UTXOs for any address.", endpoint: "GET /{chain}/dashboards/address/{addr}" },
+  { to: "/$chain/nodes", title: "Network nodes", desc: "Connected nodes, versions, and geographic spread.", endpoint: "GET /{chain}/nodes" },
+  { to: "/analytics", title: "Analytics lab", desc: "Custom Infinitable queries with filters, sorts, and aggregations.", endpoint: "GET /{chain}/{table}?q=&s=&aggregate=" },
+  { to: "/portfolio", title: "Multi-chain portfolio", desc: "Track addresses across chains with totals in USD.", endpoint: "GET /multi/dashboards/addresses/{list}" },
+  { to: "/news", title: "Crypto news feed", desc: "Aggregated crypto news pulled from Blockchair's news endpoint.", endpoint: "GET /news" },
+  { to: "/tools", title: "Tools", desc: "Suggest transactions, decode raw tx, convert hash formats.", endpoint: "GET /{chain}/tools/*" },
+  { to: "/broadcast", title: "Broadcast transaction", desc: "Push a signed raw transaction to the network.", endpoint: "POST /{chain}/push/transaction" },
+];
+
 function HomePage() {
   const { data: stats } = useSuspenseQuery(statsQuery);
 
