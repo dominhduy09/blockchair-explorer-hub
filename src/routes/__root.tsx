@@ -59,52 +59,78 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <SiteHeader />
-      <main>{children}</main>
-      <footer className="mt-16 border-t border-border">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-2">
-          <div>
-            <h3 className="font-mono text-sm font-semibold text-foreground">About</h3>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              <span className="text-foreground">Minh Duy Do</span> is a Computer Science student passionate about
-              building modern, high-performance web applications. With a strong interest in AI, system design, and
-              scalable software engineering, he focuses on creating impactful and efficient solutions.
-            </p>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              He has experience in full-stack development, machine learning, and cloud technologies, and actively
-              builds projects, contributes to open-source, and explores new technologies to continuously grow as a
-              developer.
-            </p>
+      <main className="flex-1">{children}</main>
+      <footer className="mt-24 border-t border-border bg-card/30">
+        <div className="mx-auto max-w-7xl px-4 py-12 md:px-6">
+          <div className="grid gap-10 md:grid-cols-[1.4fr_1fr] md:gap-16">
+            <div>
+              <span className="font-mono text-base font-bold">
+                <span className="text-primary">$</span> chainscope
+              </span>
+              <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
+                <span className="text-foreground">Minh Duy Do</span> — Computer Science student
+                building modern, high-performance web applications. Interested in AI, system
+                design, and scalable software engineering.
+              </p>
+              <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
+                Experience across full-stack development, machine learning, and cloud. Actively
+                builds projects and contributes to open-source.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Credits & contact
+              </h3>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li>
+                  <a
+                    href="https://github.com/dominhduy09"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-foreground hover:text-primary"
+                  >
+                    GitHub ↗
+                  </a>
+                  <span className="ml-2 text-xs text-muted-foreground">@dominhduy09</span>
+                </li>
+                <li>
+                  <a
+                    href="https://linkedin.com/in/duy-do-minh-0b37501a9"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-foreground hover:text-primary"
+                  >
+                    LinkedIn ↗
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:dominhduy09@gmail.com"
+                    className="text-foreground hover:text-primary"
+                  >
+                    dominhduy09@gmail.com
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div>
-            <h3 className="font-mono text-sm font-semibold text-foreground">Credits & contact</h3>
-            <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-              <li>
-                GitHub:{" "}
-                <a href="https://github.com/dominhduy09" target="_blank" rel="noreferrer" className="text-foreground hover:text-primary">
-                  github.com/dominhduy09
-                </a>
-              </li>
-              <li>
-                LinkedIn:{" "}
-                <a href="https://linkedin.com/in/duy-do-minh-0b37501a9" target="_blank" rel="noreferrer" className="text-foreground hover:text-primary">
-                  linkedin.com/in/duy-do-minh-0b37501a9
-                </a>
-              </li>
-              <li>
-                Email:{" "}
-                <a href="mailto:dominhduy09@gmail.com" className="text-foreground hover:text-primary">
-                  dominhduy09@gmail.com
-                </a>
-              </li>
-            </ul>
-            <p className="mt-4 text-[11px] text-muted-foreground">
+
+          <div className="mt-10 flex flex-col items-start justify-between gap-2 border-t border-border/60 pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center">
+            <p>© {new Date().getFullYear()} Minh Duy Do. Built on Lovable.</p>
+            <p>
               Data via{" "}
-              <a href="https://blockchair.com" target="_blank" rel="noreferrer" className="text-foreground hover:text-primary">
+              <a
+                href="https://blockchair.com"
+                target="_blank"
+                rel="noreferrer"
+                className="text-foreground hover:text-primary"
+              >
                 Blockchair API
               </a>
-              . Built on Lovable.
+              .
             </p>
           </div>
         </div>
