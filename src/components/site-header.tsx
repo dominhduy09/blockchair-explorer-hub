@@ -3,6 +3,7 @@ import { GlobalSearch } from "./global-search";
 
 const NAV = [
   { to: "/chains", label: "Chains" },
+  { to: "/analytics", label: "Analytics" },
   { to: "/portfolio", label: "Portfolio" },
   { to: "/news", label: "News" },
   { to: "/tools", label: "Tools" },
