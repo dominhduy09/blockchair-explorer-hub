@@ -136,9 +136,9 @@ function MarketComparison({ stats }: { stats: any }) {
   }).filter((r) => r.market_price_usd !== null || r.blocks !== null);
 
   rows.sort((a, b) => {
-    const av = a[sortBy] ?? -Infinity;
-    const bv = b[sortBy] ?? -Infinity;
-    return dir === "desc" ? (bv as number) - (av as number) : (av as number) - (bv as number);
+    const av = (a[sortBy] as number | null) ?? -Infinity;
+    const bv = (b[sortBy] as number | null) ?? -Infinity;
+    return dir === "desc" ? bv - av : av - bv;
   });
 
   const click = (k: SortKey) => {
