@@ -77,7 +77,7 @@ function HomePage() {
       </div>
 
       {/* Feature map */}
-      <section className="mt-16">
+      <section className="mt-12 sm:mt-16">
         <h2 className="mb-1 font-mono text-lg font-semibold">What this site does</h2>
         <p className="mb-4 text-xs text-muted-foreground">
           Every Blockchair API capability is wired to a dedicated route.
@@ -105,7 +105,7 @@ function HomePage() {
       </section>
 
       {/* Featured chains */}
-      <section className="mt-16">
+      <section className="mt-12 sm:mt-16">
         <div className="mb-4 flex items-end justify-between">
           <h2 className="font-mono text-lg font-semibold">Featured chains</h2>
           <Link to="/chains" className="text-sm text-muted-foreground hover:text-primary">
@@ -154,7 +154,7 @@ function HomePage() {
       <MarketComparison stats={stats} />
 
       {/* What you can do */}
-      <section className="mt-16 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <section className="mt-12 sm:mt-16 grid grid-cols-1 gap-4 md:grid-cols-3">
         {[
           { t: "Search anything", d: "Paste a tx hash, address, block hash, or height. We figure out which chain." },
           { t: "Per-chain dashboards", d: "Live price, market cap, blocks, mempool, fees, and latest activity." },
@@ -215,7 +215,7 @@ function MarketComparison({ stats }: { stats: any }) {
   );
 
   return (
-    <section className="mt-16">
+    <section className="mt-12 sm:mt-16">
       <div className="mb-4 flex items-end justify-between">
         <div>
           <h2 className="font-mono text-lg font-semibold">Market comparison</h2>
