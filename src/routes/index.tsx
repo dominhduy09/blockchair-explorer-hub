@@ -84,9 +84,9 @@ function HomePage() {
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURE_MAP.map((f) => (
-            <Link
-              key={f.to}
-              to={f.to}
+            <a
+              key={f.title}
+              href={f.to.replace("$chain", "bitcoin").replace("$id", "latest").replace("$hash", "demo").replace("$addr", "demo")}
               className="group rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/60"
             >
               <div className="flex items-baseline justify-between gap-2">
@@ -99,7 +99,7 @@ function HomePage() {
               <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70">
                 {f.endpoint}
               </p>
-            </Link>
+            </a>
           ))}
         </div>
       </section>
