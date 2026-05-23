@@ -95,12 +95,15 @@ function HomePage() {
         </div>
       </section>
 
+      {/* Market comparison */}
+      <MarketComparison stats={stats} />
+
       {/* What you can do */}
       <section className="mt-16 grid grid-cols-1 gap-4 md:grid-cols-3">
         {[
           { t: "Search anything", d: "Paste a tx hash, address, block hash, or height. We figure out which chain." },
           { t: "Per-chain dashboards", d: "Live price, market cap, blocks, mempool, fees, and latest activity." },
-          { t: "Deep details", d: "Inspect block contents, transaction inputs/outputs, and address history." },
+          { t: "Analytics lab", d: "Run custom infinitable queries: filter, sort, aggregate across chains." },
         ].map((c) => (
           <div key={c.t} className="rounded-lg border border-border bg-card p-5">
             <h3 className="font-mono text-sm font-semibold text-primary">{c.t}</h3>
@@ -110,4 +113,118 @@ function HomePage() {
       </section>
     </div>
   );
+}
+
+type SortKey = "market_cap_usd" | "market_price_usd" | "transactions_24h" | "hashrate_24h" | "difficulty" | "blocks";
+
+function MarketComparison({ stats }: { stats: any }) {
+  const [sortBy, setSortBy] = useState<SortKey>("market_cap_usd");
+  const [dir, setDir] = useState<"asc" | "desc">("desc");
+
+  const rows = CHAINS.map((c) => {
+    const s = stats?.[c.slug]?.data ?? stats?.[c.slug] ?? null;
+    return {
+      chain: c,
+      market_price_usd: num(s?.market_price_usd),
+      market_cap_usd: num(s?.market_cap_usd),
+      transactions_24h: num(s?.transactions_24h),
+      hashrate_24h: num(s?.hashrate_24h),
+      difficulty: num(s?.difficulty),
+      blocks: num(s?.blocks),
+    };
+  }).filter((r) => r.market_price_usd !== null || r.blocks !== null);
+
+  rows.sort((a, b) => {
+    const av = a[sortBy] ?? -Infinity;
+    const bv = b[sortBy] ?? -Infinity;
+    return dir === "desc" ? (bv as number) - (av as number) : (av as number) - (bv as number);
+  });
+
+  const click = (k: SortKey) => {
+    if (sortBy === k) setDir(dir === "desc" ? "asc" : "desc");
+    else {
+      setSortBy(k);
+      setDir("desc");
+    }
+  };
+
+  const Th = ({ k, label, right = true }: { k: SortKey; label: string; right?: boolean }) => (
+    <th
+      onClick={() => click(k)}
+      className={`cursor-pointer select-none px-3 py-2 font-mono text-xs font-semibold text-muted-foreground hover:text-foreground ${
+        right ? "text-right" : "text-left"
+      }`}
+    >
+      {label} {sortBy === k ? (dir === "desc" ? "↓" : "↑") : ""}
+    </th>
+  );
+
+  return (
+    <section className="mt-16">
+      <div className="mb-4 flex items-end justify-between">
+        <div>
+          <h2 className="font-mono text-lg font-semibold">Market comparison</h2>
+          <p className="text-xs text-muted-foreground">Sort across price, market cap, 24h volume, hashrate, difficulty.</p>
+        </div>
+        <Link to="/analytics" className="text-sm text-muted-foreground hover:text-primary">
+          Analytics lab →
+        </Link>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <table className="min-w-full text-sm">
+          <thead className="border-b border-border bg-muted/20">
+            <tr>
+              <th className="px-3 py-2 text-left font-mono text-xs font-semibold text-muted-foreground">Chain</th>
+              <Th k="market_price_usd" label="Price" />
+              <Th k="market_cap_usd" label="Mkt cap" />
+              <Th k="transactions_24h" label="Tx 24h" />
+              <Th k="hashrate_24h" label="Hashrate 24h" />
+              <Th k="difficulty" label="Difficulty" />
+              <Th k="blocks" label="Blocks" />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ chain, ...m }) => (
+              <tr key={chain.slug} className="border-b border-border/60 hover:bg-muted/20">
+                <td className="px-3 py-2">
+                  <Link
+                    to="/$chain"
+                    params={{ chain: chain.slug }}
+                    className="flex items-center gap-2 text-foreground hover:text-primary"
+                  >
+                    <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: chain.color }} />
+                    <span className="font-mono">{chain.name}</span>
+                    <span className="text-xs text-muted-foreground">{chain.ticker}</span>
+                  </Link>
+                </td>
+                <td className="px-3 py-2 text-right font-mono">{formatUsd(m.market_price_usd)}</td>
+                <td className="px-3 py-2 text-right font-mono">{formatUsd(m.market_cap_usd)}</td>
+                <td className="px-3 py-2 text-right font-mono">{formatNumber(m.transactions_24h)}</td>
+                <td className="px-3 py-2 text-right font-mono text-muted-foreground">{formatCompact(m.hashrate_24h)}</td>
+                <td className="px-3 py-2 text-right font-mono text-muted-foreground">{formatCompact(m.difficulty)}</td>
+                <td className="px-3 py-2 text-right font-mono">{formatNumber(m.blocks)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function num(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = typeof v === "string" ? Number(v) : (v as number);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatCompact(n: number | null): string {
+  if (n === null) return "—";
+  if (n >= 1e18) return `${(n / 1e18).toFixed(2)}E`;
+  if (n >= 1e15) return `${(n / 1e15).toFixed(2)}P`;
+  if (n >= 1e12) return `${(n / 1e12).toFixed(2)}T`;
+  if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(2)}K`;
+  return n.toLocaleString();
 }
