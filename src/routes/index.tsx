@@ -27,6 +27,21 @@ export const Route = createFileRoute("/")({
 
 const FEATURED = ["bitcoin", "ethereum", "solana", "tron", "ripple", "bnb", "polygon", "litecoin"];
 
+const FEATURE_MAP: { to: string; title: string; desc: string; endpoint: string }[] = [
+  { to: "/", title: "Global dashboard", desc: "Live stats and market comparison across all supported chains.", endpoint: "GET /stats" },
+  { to: "/chains", title: "Chain directory", desc: "Browse every chain Blockchair lists, grouped by category.", endpoint: "static + /stats" },
+  { to: "/$chain", title: "Per-chain explorer", desc: "Price, mempool, blocks, fees, and latest activity per chain.", endpoint: "GET /{chain}/stats" },
+  { to: "/$chain/block/$id", title: "Block inspector", desc: "Full block payload with transactions and miner data.", endpoint: "GET /{chain}/dashboards/block/{id}" },
+  { to: "/$chain/transaction/$hash", title: "Transaction + privacy-o-meter", desc: "Decoded tx with inputs, outputs, fees and privacy score.", endpoint: "GET /{chain}/dashboards/transaction/{hash}" },
+  { to: "/$chain/address/$addr", title: "Address dashboard", desc: "Balance, tx history, UTXOs for any address.", endpoint: "GET /{chain}/dashboards/address/{addr}" },
+  { to: "/$chain/nodes", title: "Network nodes", desc: "Connected nodes, versions, and geographic spread.", endpoint: "GET /{chain}/nodes" },
+  { to: "/analytics", title: "Analytics lab", desc: "Custom Infinitable queries with filters, sorts, and aggregations.", endpoint: "GET /{chain}/{table}?q=&s=&aggregate=" },
+  { to: "/portfolio", title: "Multi-chain portfolio", desc: "Track addresses across chains with totals in USD.", endpoint: "GET /multi/dashboards/addresses/{list}" },
+  { to: "/news", title: "Crypto news feed", desc: "Aggregated crypto news pulled from Blockchair's news endpoint.", endpoint: "GET /news" },
+  { to: "/tools", title: "Tools", desc: "Suggest transactions, decode raw tx, convert hash formats.", endpoint: "GET /{chain}/tools/*" },
+  { to: "/broadcast", title: "Broadcast transaction", desc: "Push a signed raw transaction to the network.", endpoint: "POST /{chain}/push/transaction" },
+];
+
 function HomePage() {
   const { data: stats } = useSuspenseQuery(statsQuery);
 
@@ -48,6 +63,45 @@ function HomePage() {
         <p className="mt-3 text-xs text-muted-foreground">
           Try <code className="text-foreground">bitcoin</code>, an Ethereum address, or a tx hash.
         </p>
+      </section>
+
+      {/* Unsupported banner */}
+      <div
+        role="status"
+        className="mx-auto mt-8 max-w-3xl rounded-md border border-dashed border-yellow-500/40 bg-yellow-500/5 px-4 py-3 text-center text-xs text-yellow-200/90"
+      >
+        <span className="font-mono font-semibold text-yellow-300">Heads up:</span> Only{" "}
+        {CHAINS.filter((c) => c.supported).length} of {CHAINS.length} chains are currently served by the
+        Blockchair API. EVM chains and a few others are listed but{" "}
+        <Link to="/chains" className="underline hover:text-yellow-100">marked N/A</Link>.
+      </div>
+
+      {/* Feature map */}
+      <section className="mt-16">
+        <h2 className="mb-1 font-mono text-lg font-semibold">What this site does</h2>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Every Blockchair API capability is wired to a dedicated route.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURE_MAP.map((f) => (
+            <a
+              key={f.title}
+              href={f.to.replace("$chain", "bitcoin").replace("$id", "latest").replace("$hash", "demo").replace("$addr", "demo")}
+              className="group rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/60"
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-mono text-sm font-semibold text-foreground group-hover:text-primary">
+                  {f.title}
+                </span>
+                <code className="text-[10px] text-muted-foreground">{f.to}</code>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{f.desc}</p>
+              <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                {f.endpoint}
+              </p>
+            </a>
+          ))}
+        </div>
       </section>
 
       {/* Featured chains */}
