@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as PortfolioRouteImport } from './routes/portfolio'
 import { Route as NewsRouteImport } from './routes/news'
@@ -16,10 +17,16 @@ import { Route as ChainsRouteImport } from './routes/chains'
 import { Route as BroadcastRouteImport } from './routes/broadcast'
 import { Route as ChainRouteImport } from './routes/$chain'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ChainNodesRouteImport } from './routes/$chain.nodes'
 import { Route as ChainTransactionHashRouteImport } from './routes/$chain.transaction.$hash'
 import { Route as ChainBlockIdRouteImport } from './routes/$chain.block.$id'
 import { Route as ChainAddressAddrRouteImport } from './routes/$chain.address.$addr'
 
+const ToolsRoute = ToolsRouteImport.update({
+  id: '/tools',
+  path: '/tools',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
@@ -55,6 +62,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChainNodesRoute = ChainNodesRouteImport.update({
+  id: '/nodes',
+  path: '/nodes',
+  getParentRoute: () => ChainRoute,
+} as any)
 const ChainTransactionHashRoute = ChainTransactionHashRouteImport.update({
   id: '/transaction/$hash',
   path: '/transaction/$hash',
@@ -79,6 +91,8 @@ export interface FileRoutesByFullPath {
   '/news': typeof NewsRoute
   '/portfolio': typeof PortfolioRoute
   '/search': typeof SearchRoute
+  '/tools': typeof ToolsRoute
+  '/$chain/nodes': typeof ChainNodesRoute
   '/$chain/address/$addr': typeof ChainAddressAddrRoute
   '/$chain/block/$id': typeof ChainBlockIdRoute
   '/$chain/transaction/$hash': typeof ChainTransactionHashRoute
@@ -91,6 +105,8 @@ export interface FileRoutesByTo {
   '/news': typeof NewsRoute
   '/portfolio': typeof PortfolioRoute
   '/search': typeof SearchRoute
+  '/tools': typeof ToolsRoute
+  '/$chain/nodes': typeof ChainNodesRoute
   '/$chain/address/$addr': typeof ChainAddressAddrRoute
   '/$chain/block/$id': typeof ChainBlockIdRoute
   '/$chain/transaction/$hash': typeof ChainTransactionHashRoute
@@ -104,6 +120,8 @@ export interface FileRoutesById {
   '/news': typeof NewsRoute
   '/portfolio': typeof PortfolioRoute
   '/search': typeof SearchRoute
+  '/tools': typeof ToolsRoute
+  '/$chain/nodes': typeof ChainNodesRoute
   '/$chain/address/$addr': typeof ChainAddressAddrRoute
   '/$chain/block/$id': typeof ChainBlockIdRoute
   '/$chain/transaction/$hash': typeof ChainTransactionHashRoute
@@ -118,6 +136,8 @@ export interface FileRouteTypes {
     | '/news'
     | '/portfolio'
     | '/search'
+    | '/tools'
+    | '/$chain/nodes'
     | '/$chain/address/$addr'
     | '/$chain/block/$id'
     | '/$chain/transaction/$hash'
@@ -130,6 +150,8 @@ export interface FileRouteTypes {
     | '/news'
     | '/portfolio'
     | '/search'
+    | '/tools'
+    | '/$chain/nodes'
     | '/$chain/address/$addr'
     | '/$chain/block/$id'
     | '/$chain/transaction/$hash'
@@ -142,6 +164,8 @@ export interface FileRouteTypes {
     | '/news'
     | '/portfolio'
     | '/search'
+    | '/tools'
+    | '/$chain/nodes'
     | '/$chain/address/$addr'
     | '/$chain/block/$id'
     | '/$chain/transaction/$hash'
@@ -155,10 +179,18 @@ export interface RootRouteChildren {
   NewsRoute: typeof NewsRoute
   PortfolioRoute: typeof PortfolioRoute
   SearchRoute: typeof SearchRoute
+  ToolsRoute: typeof ToolsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tools': {
+      id: '/tools'
+      path: '/tools'
+      fullPath: '/tools'
+      preLoaderRoute: typeof ToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/search': {
       id: '/search'
       path: '/search'
@@ -208,6 +240,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$chain/nodes': {
+      id: '/$chain/nodes'
+      path: '/nodes'
+      fullPath: '/$chain/nodes'
+      preLoaderRoute: typeof ChainNodesRouteImport
+      parentRoute: typeof ChainRoute
+    }
     '/$chain/transaction/$hash': {
       id: '/$chain/transaction/$hash'
       path: '/transaction/$hash'
@@ -233,12 +272,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface ChainRouteChildren {
+  ChainNodesRoute: typeof ChainNodesRoute
   ChainAddressAddrRoute: typeof ChainAddressAddrRoute
   ChainBlockIdRoute: typeof ChainBlockIdRoute
   ChainTransactionHashRoute: typeof ChainTransactionHashRoute
 }
 
 const ChainRouteChildren: ChainRouteChildren = {
+  ChainNodesRoute: ChainNodesRoute,
   ChainAddressAddrRoute: ChainAddressAddrRoute,
   ChainBlockIdRoute: ChainBlockIdRoute,
   ChainTransactionHashRoute: ChainTransactionHashRoute,
@@ -254,6 +295,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewsRoute: NewsRoute,
   PortfolioRoute: PortfolioRoute,
   SearchRoute: SearchRoute,
+  ToolsRoute: ToolsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
