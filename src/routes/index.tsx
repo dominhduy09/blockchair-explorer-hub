@@ -50,6 +50,45 @@ function HomePage() {
         </p>
       </section>
 
+      {/* Unsupported banner */}
+      <div
+        role="status"
+        className="mx-auto mt-8 max-w-3xl rounded-md border border-dashed border-yellow-500/40 bg-yellow-500/5 px-4 py-3 text-center text-xs text-yellow-200/90"
+      >
+        <span className="font-mono font-semibold text-yellow-300">Heads up:</span> Only{" "}
+        {CHAINS.filter((c) => c.supported).length} of {CHAINS.length} chains are currently served by the
+        Blockchair API. EVM chains and a few others are listed but{" "}
+        <Link to="/chains" className="underline hover:text-yellow-100">marked N/A</Link>.
+      </div>
+
+      {/* Feature map */}
+      <section className="mt-16">
+        <h2 className="mb-1 font-mono text-lg font-semibold">What this site does</h2>
+        <p className="mb-4 text-xs text-muted-foreground">
+          Every Blockchair API capability is wired to a dedicated route.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURE_MAP.map((f) => (
+            <Link
+              key={f.to}
+              to={f.to}
+              className="group rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/60"
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-mono text-sm font-semibold text-foreground group-hover:text-primary">
+                  {f.title}
+                </span>
+                <code className="text-[10px] text-muted-foreground">{f.to}</code>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{f.desc}</p>
+              <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                {f.endpoint}
+              </p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       {/* Featured chains */}
       <section className="mt-16">
         <div className="mb-4 flex items-end justify-between">
