@@ -6,6 +6,15 @@ A fast, clean block explorer for browsing blocks, transactions, addresses, and o
 
 ---
 
+## Interface Previews
+
+<img width="1408" height="768" alt="icon" src="https://github.com/user-attachments/assets/046bf6db-7b88-43dd-b231-4c5f0fad0cc4" />
+<img width="1728" height="1226" alt="screenshot-engine-studio" src="https://github.com/user-attachments/assets/c7ca4666-728b-4a65-a807-81a75436ac73" />
+<img width="1728" height="1226" alt="2" src="https://github.com/user-attachments/assets/6f5e2c48-8807-40e8-b0a7-580b62b57429" />
+<img width="1728" height="1226" alt="3" src="https://github.com/user-attachments/assets/bd723036-77d5-46d7-b66e-a519f0ab2d6a" />
+<img width="1728" height="1226" alt="4" src="https://github.com/user-attachments/assets/115ec620-05e0-4242-a71d-94cd84673eee" />
+<img width="1728" height="1226" alt="5" src="https://github.com/user-attachments/assets/5e3eb977-20a7-40af-bdf6-e2132719d8a7" />
+
 ## Features
 
 - **Global dashboard** — aggregated stats across all supported chains
