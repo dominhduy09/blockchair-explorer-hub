@@ -39,7 +39,7 @@ export const Route = createFileRoute("/$chain/transaction/$hash")({
   beforeLoad: ({ params }) => {
     if (!isValidChain(params.chain)) throw notFound();
   },
-  loaderDeps: ({ search }) => ({ privacy: search.privacy }),
+  loaderDeps: ({ search }: { search: { privacy: boolean } }) => ({ privacy: search.privacy }),
   loader: ({ params, deps, context }) =>
     context.queryClient.ensureQueryData(txQuery(params.chain, params.hash, deps.privacy)),
   component: TxPage,
