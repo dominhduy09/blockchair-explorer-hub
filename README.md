@@ -3,6 +3,7 @@
 A fast, clean block explorer for browsing blocks, transactions, addresses, and on-chain analytics across 17+ blockchains supported by the [Blockchair API](https://blockchair.com/api/docs). Built with TanStack Start, React 19, Tailwind CSS v4, and Lovable Cloud.
 
 > Live: <https://blockchair-explorer-hub.lovable.app>
+> YouTube: <https://youtu.be/E74bBsbcvdQ>
 
 ---
 
