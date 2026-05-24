@@ -46,6 +46,28 @@ function ToolsPage() {
         </p>
       </section>
 
+      <section className="rounded-lg border border-border bg-card/50 p-6">
+        <h2 className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
+          How to use
+        </h2>
+        <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-foreground">
+          <li>
+            <span className="font-medium">Bitcoin halvening</span> — see the current block height,
+            the next halvening block, blocks remaining, current/next miner reward, and the estimated
+            date. Useful for tracking Bitcoin's supply schedule.
+          </li>
+          <li>
+            <span className="font-medium">Available ranges</span> — shows the earliest and latest
+            block/date Blockchair has indexed for each supported chain. Click a chain name to jump
+            to its dashboard.
+          </li>
+          <li>
+            Data refreshes automatically (halvening every minute, ranges every 5 minutes). Reload
+            the page to force-fetch the latest values.
+          </li>
+        </ol>
+      </section>
+
       <section className="rounded-lg border border-border bg-card p-6">
         <h2 className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
           Bitcoin halvening

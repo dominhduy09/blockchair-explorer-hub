@@ -28,6 +28,36 @@ function BroadcastPage() {
       <p className="mt-1 text-sm text-muted-foreground">
         Submit a signed raw transaction (hex) to the network via Blockchair's <code>push/transaction</code>.
       </p>
+
+      <section className="mt-6 rounded-lg border border-border bg-card/50 p-6">
+        <h2 className="font-mono text-sm uppercase tracking-wider text-muted-foreground">
+          How to use
+        </h2>
+        <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-foreground">
+          <li>
+            <span className="font-medium">Sign your transaction offline</span> using your wallet
+            or a library (bitcoinjs-lib, ethers, etc.). This page does NOT sign — it only relays.
+          </li>
+          <li>
+            <span className="font-medium">Pick the chain</span> that matches your signed transaction.
+            Sending a BTC tx on the LTC network (or vice versa) will fail.
+          </li>
+          <li>
+            <span className="font-medium">Paste the raw transaction hex</span> into the textarea
+            (e.g. <code>0100000001…</code> for Bitcoin-family, or <code>0xf86c…</code> for Ethereum).
+          </li>
+          <li>
+            Click <span className="font-medium">Broadcast</span>. On success the response shows the
+            accepted txid; on failure you'll see the node's rejection reason (already-spent inputs,
+            low fee, malformed hex, etc.).
+          </li>
+          <li>
+            <span className="font-medium">Tip:</span> always double-check the hex — broadcasted
+            transactions cannot be undone.
+          </li>
+        </ol>
+      </section>
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
