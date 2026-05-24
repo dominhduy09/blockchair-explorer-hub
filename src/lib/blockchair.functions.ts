@@ -307,14 +307,21 @@ export const runInfinitable = createServerFn({ method: "GET" })
     }),
   )
   .handler(async ({ data }) => {
-    const out = await bcFetch(`/${data.chain}/${data.table}`, {
-      q: data.q,
-      s: data.s,
+    const hasAggregate = !!data.aggregate?.trim();
+    // Blockchair rejects requests mixing `aggregate` with `fields`, and the
+    // sort expression must reference an aggregated column when aggregating.
+    const params: Record<string, string | number | undefined> = {
+      q: data.q?.trim() || undefined,
+      s: data.s?.trim() || undefined,
       limit: data.limit,
       offset: data.offset,
-      fields: data.fields,
-      aggregate: data.aggregate,
-    });
+    };
+    if (hasAggregate) {
+      params.aggregate = data.aggregate!.trim();
+    } else {
+      params.fields = data.fields?.trim() || undefined;
+    }
+    const out = await bcFetch(`/${data.chain}/${data.table}`, params);
     return {
       rows: (out?.data ?? []) as any[],
       context: out?.context ?? null,
