@@ -228,7 +228,15 @@ function AnalyticsPage() {
             className="w-full rounded-md border border-border bg-input px-2 py-1.5 font-mono text-xs"
           />
         </Field>
-        <Field label="s (sort)" className="md:col-span-6" hint="e.g. time(desc) , value(asc)">
+        <Field
+          label="s (sort)"
+          className="md:col-span-6"
+          hint={
+            aggregate
+              ? "must reference an aggregated column, e.g. count()(desc) or date(time)(desc)"
+              : "e.g. time(desc) , value(asc) — must be a sortable column"
+          }
+        >
           <input
             value={s}
             onChange={(e) => setS(e.target.value)}
