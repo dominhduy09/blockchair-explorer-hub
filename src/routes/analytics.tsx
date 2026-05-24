@@ -236,12 +236,17 @@ function AnalyticsPage() {
             className="w-full rounded-md border border-border bg-input px-2 py-1.5 font-mono text-xs"
           />
         </Field>
-        <Field label="fields" className="md:col-span-6" hint="comma list; empty = all">
+        <Field
+          label="fields"
+          className="md:col-span-6"
+          hint={aggregate ? "ignored while aggregate is set" : "comma list; empty = all"}
+        >
           <input
             value={fields}
             onChange={(e) => setFields(e.target.value)}
             placeholder="hash,time,value"
-            className="w-full rounded-md border border-border bg-input px-2 py-1.5 font-mono text-xs"
+            disabled={!!aggregate}
+            className="w-full rounded-md border border-border bg-input px-2 py-1.5 font-mono text-xs disabled:opacity-50"
           />
         </Field>
         <Field
