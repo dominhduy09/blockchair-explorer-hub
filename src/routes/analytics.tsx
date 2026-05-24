@@ -292,9 +292,33 @@ function AnalyticsPage() {
         </Field>
       </div>
 
-      {m.error && (
-        <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-          {(m.error as Error).message}
+      {(m.error || m.data?.error) && (
+        <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm">
+          <div className="font-mono text-xs uppercase tracking-wider text-destructive">
+            Query failed
+          </div>
+          <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-xs text-destructive">
+            {m.data?.error ?? (m.error as Error)?.message}
+          </pre>
+          {m.data?.sent && (
+            <div className="mt-3 space-y-1 border-t border-destructive/30 pt-3 font-mono text-[11px] text-foreground/80">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Request sent to Blockchair
+              </div>
+              <Row k="endpoint" v={`/${m.data.sent.chain}/${m.data.sent.table}`} />
+              {m.data.sent.q && <Row k="q" v={m.data.sent.q} />}
+              {m.data.sent.s && <Row k="s" v={m.data.sent.s} />}
+              {m.data.sent.aggregate && (
+                <Row k="a (aggregate)" v={m.data.sent.aggregate} highlight />
+              )}
+              {m.data.sent.fields && <Row k="fields" v={m.data.sent.fields} />}
+            </div>
+          )}
+          <div className="mt-3 text-[11px] text-muted-foreground">
+            Tip: aggregate uses <code>metrics|group-by</code> (e.g.{" "}
+            <code>count(),avg(fee_usd)|date(time)</code>). Sort must reference an aggregated
+            column (e.g. <code>count()(desc)</code>).
+          </div>
         </div>
       )}
 
