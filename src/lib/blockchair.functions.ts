@@ -372,13 +372,14 @@ export const runInfinitable = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const hasAggregate = !!data.aggregate?.trim();
     const normalizedAggregate = normalizeAggregateSyntax(data.aggregate);
+    const normalizedSort = hasAggregate
+      ? normalizeAggregateSort(data.s, normalizedAggregate)
+      : data.s?.trim() || undefined;
     // Blockchair rejects requests mixing `aggregate` with `fields`, and the
     // sort expression must reference an aggregated column when aggregating.
     const params: Record<string, string | number | undefined> = {
       q: data.q?.trim() || undefined,
-      s: hasAggregate
-        ? normalizeAggregateSort(data.s, normalizedAggregate)
-        : data.s?.trim() || undefined,
+      s: normalizedSort,
       limit: data.limit,
       offset: data.offset,
     };
@@ -387,11 +388,30 @@ export const runInfinitable = createServerFn({ method: "GET" })
     } else {
       params.fields = data.fields?.trim() || undefined;
     }
-    const out = await bcFetch(`/${data.chain}/${data.table}`, params);
-    return {
-      rows: (out?.data ?? []) as any[],
-      context: out?.context ?? null,
+    const sent = {
+      chain: data.chain,
+      table: data.table,
+      q: params.q as string | undefined,
+      s: params.s as string | undefined,
+      aggregate: hasAggregate ? (normalizedAggregate as string | undefined) : undefined,
+      fields: hasAggregate ? undefined : (params.fields as string | undefined),
     };
+    try {
+      const out = await bcFetch(`/${data.chain}/${data.table}`, params);
+      return {
+        rows: (out?.data ?? []) as any[],
+        context: out?.context ?? null,
+        error: null as string | null,
+        sent,
+      };
+    } catch (e) {
+      return {
+        rows: [] as any[],
+        context: null,
+        error: (e as Error).message,
+        sent,
+      };
+    }
   });
 
 // ============================================================================
