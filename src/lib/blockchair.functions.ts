@@ -284,6 +284,69 @@ const INFINITABLE_TABLES = [
   "addresses",
 ] as const;
 
+function normalizeAggregateSyntax(aggregate?: string) {
+  const raw = aggregate?.trim();
+  if (!raw) return undefined;
+
+  if (!raw.includes("|")) return raw;
+
+  const [metricsPart, groupsPart] = raw.split("|", 2);
+  const metrics = metricsPart
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const groups = groupsPart
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return [...groups, ...metrics].join(",");
+}
+
+function getAggregateSortableFields(aggregate?: string) {
+  const normalized = normalizeAggregateSyntax(aggregate);
+  if (!normalized) return [];
+
+  return normalized
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function normalizeAggregateSort(sort?: string, aggregate?: string) {
+  const rawSort = sort?.trim();
+  if (!rawSort) return undefined;
+
+  const sortableFields = getAggregateSortableFields(aggregate);
+  if (sortableFields.length === 0) return rawSort;
+
+  const sortClauses = rawSort
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((clause) => {
+      const match = clause.match(/^(.*)\((asc|desc)\)$/i);
+      if (!match) return clause;
+
+      const field = match[1]?.trim() ?? "";
+      const direction = match[2].toLowerCase();
+      if (!field) return clause;
+
+      const exact = sortableFields.find((candidate) => candidate === field);
+      if (exact) return `${exact}(${direction})`;
+
+      const withoutTrailingCall = field.replace(/\(\)$/g, "");
+      const functionMatch = sortableFields.find((candidate) => {
+        const candidateBase = candidate.replace(/\(\)$/g, "");
+        return candidateBase === withoutTrailingCall;
+      });
+
+      return functionMatch ? `${functionMatch}(${direction})` : clause;
+    });
+
+  return sortClauses.join(",");
+}
+
 export const runInfinitable = createServerFn({ method: "GET" })
   .inputValidator(
     (input: {
@@ -308,16 +371,19 @@ export const runInfinitable = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }) => {
     const hasAggregate = !!data.aggregate?.trim();
+    const normalizedAggregate = normalizeAggregateSyntax(data.aggregate);
     // Blockchair rejects requests mixing `aggregate` with `fields`, and the
     // sort expression must reference an aggregated column when aggregating.
     const params: Record<string, string | number | undefined> = {
       q: data.q?.trim() || undefined,
-      s: data.s?.trim() || undefined,
+      s: hasAggregate
+        ? normalizeAggregateSort(data.s, normalizedAggregate)
+        : data.s?.trim() || undefined,
       limit: data.limit,
       offset: data.offset,
     };
     if (hasAggregate) {
-      params.aggregate = data.aggregate!.trim();
+      params.a = normalizedAggregate;
     } else {
       params.fields = data.fields?.trim() || undefined;
     }
