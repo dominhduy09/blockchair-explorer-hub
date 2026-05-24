@@ -92,6 +92,25 @@ export const Route = createFileRoute("/analytics")({
     ],
   }),
   component: AnalyticsPage,
+  errorComponent: ({ error, reset }) => (
+    <div className="mx-auto max-w-3xl px-4 py-10">
+      <h1 className="font-mono text-2xl font-bold">Analytics lab</h1>
+      <div className="mt-6 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm">
+        <div className="font-mono text-xs uppercase tracking-wider text-destructive">
+          Query failed
+        </div>
+        <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-xs text-destructive">
+          {(error as Error)?.message ?? String(error)}
+        </pre>
+        <button
+          onClick={() => reset()}
+          className="mt-4 rounded-md bg-primary px-3 py-1.5 font-mono text-xs text-primary-foreground"
+        >
+          Reset
+        </button>
+      </div>
+    </div>
+  ),
 });
 
 function AnalyticsPage() {
