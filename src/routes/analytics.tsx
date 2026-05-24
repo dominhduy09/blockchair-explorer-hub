@@ -260,7 +260,7 @@ function AnalyticsPage() {
         <Field
           label="aggregate"
           className="md:col-span-6"
-          hint="e.g. count()|date(time) — overrides fields"
+          hint="use metrics|group-by, e.g. count(),avg(fee_usd)|date(time)"
         >
           <input
             value={aggregate}
