@@ -322,7 +322,7 @@ function AnalyticsPage() {
         </div>
       )}
 
-      {m.data && (
+      {m.data && !m.data.error && (
         <div className="mt-6">
           <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
             <span>
