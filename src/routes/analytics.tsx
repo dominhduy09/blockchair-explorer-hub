@@ -56,8 +56,8 @@ const PRESETS: Array<{
     label: "BTC SegWit adoption (daily)",
     chain: "bitcoin",
     table: "transactions",
-    aggregate: "count(),avg(is_segwit)|date(time)",
-    limit: 30,
+    aggregate: "count()|date(time),is_segwit",
+    limit: 60,
     s: "date(time)(desc)",
   },
   {
