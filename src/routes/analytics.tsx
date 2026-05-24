@@ -394,3 +394,20 @@ function formatCell(v: unknown): string {
   const s = String(v);
   return s.length > 80 ? s.slice(0, 80) + "…" : s;
 }
+
+function Row({ k, v, highlight = false }: { k: string; v: string; highlight?: boolean }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <span className="min-w-[100px] text-muted-foreground">{k}</span>
+      <code
+        className={
+          highlight
+            ? "rounded bg-destructive/20 px-1.5 py-0.5 text-destructive"
+            : "rounded bg-muted/40 px-1.5 py-0.5"
+        }
+      >
+        {v}
+      </code>
+    </div>
+  );
+}
