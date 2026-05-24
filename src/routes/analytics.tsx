@@ -92,6 +92,25 @@ export const Route = createFileRoute("/analytics")({
     ],
   }),
   component: AnalyticsPage,
+  errorComponent: ({ error, reset }) => (
+    <div className="mx-auto max-w-3xl px-4 py-10">
+      <h1 className="font-mono text-2xl font-bold">Analytics lab</h1>
+      <div className="mt-6 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm">
+        <div className="font-mono text-xs uppercase tracking-wider text-destructive">
+          Query failed
+        </div>
+        <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-xs text-destructive">
+          {(error as Error)?.message ?? String(error)}
+        </pre>
+        <button
+          onClick={() => reset()}
+          className="mt-4 rounded-md bg-primary px-3 py-1.5 font-mono text-xs text-primary-foreground"
+        >
+          Reset
+        </button>
+      </div>
+    </div>
+  ),
 });
 
 function AnalyticsPage() {
@@ -273,13 +292,37 @@ function AnalyticsPage() {
         </Field>
       </div>
 
-      {m.error && (
-        <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-          {(m.error as Error).message}
+      {(m.error || m.data?.error) && (
+        <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm">
+          <div className="font-mono text-xs uppercase tracking-wider text-destructive">
+            Query failed
+          </div>
+          <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-xs text-destructive">
+            {m.data?.error ?? (m.error as Error)?.message}
+          </pre>
+          {m.data?.sent && (
+            <div className="mt-3 space-y-1 border-t border-destructive/30 pt-3 font-mono text-[11px] text-foreground/80">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Request sent to Blockchair
+              </div>
+              <Row k="endpoint" v={`/${m.data.sent.chain}/${m.data.sent.table}`} />
+              {m.data.sent.q && <Row k="q" v={m.data.sent.q} />}
+              {m.data.sent.s && <Row k="s" v={m.data.sent.s} />}
+              {m.data.sent.aggregate && (
+                <Row k="a (aggregate)" v={m.data.sent.aggregate} highlight />
+              )}
+              {m.data.sent.fields && <Row k="fields" v={m.data.sent.fields} />}
+            </div>
+          )}
+          <div className="mt-3 text-[11px] text-muted-foreground">
+            Tip: aggregate uses <code>metrics|group-by</code> (e.g.{" "}
+            <code>count(),avg(fee_usd)|date(time)</code>). Sort must reference an aggregated
+            column (e.g. <code>count()(desc)</code>).
+          </div>
         </div>
       )}
 
-      {m.data && (
+      {m.data && !m.data.error && (
         <div className="mt-6">
           <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
             <span>
@@ -350,4 +393,21 @@ function formatCell(v: unknown): string {
   if (typeof v === "object") return JSON.stringify(v);
   const s = String(v);
   return s.length > 80 ? s.slice(0, 80) + "…" : s;
+}
+
+function Row({ k, v, highlight = false }: { k: string; v: string; highlight?: boolean }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <span className="min-w-[100px] text-muted-foreground">{k}</span>
+      <code
+        className={
+          highlight
+            ? "rounded bg-destructive/20 px-1.5 py-0.5 text-destructive"
+            : "rounded bg-muted/40 px-1.5 py-0.5"
+        }
+      >
+        {v}
+      </code>
+    </div>
+  );
 }
