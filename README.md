@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="https://www.producthunt.com/products/chainscope?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-chainscope" target="_blank" rel="noopener noreferrer"><img alt="ChainScope - ChainScope: Look Closer, Go Deeper | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1162102&amp;theme=light&amp;t=1780460848852"></a>
+</p>
+
 # ChainScope — Blockchair Multi-Chain Explorer
 
 A fast, clean block explorer for browsing blocks, transactions, addresses, and on-chain analytics across 17+ blockchains supported by the [Blockchair API](https://blockchair.com/api/docs). Built with TanStack Start, React 19, Tailwind CSS v4, and Lovable Cloud.
