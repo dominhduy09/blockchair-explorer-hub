@@ -182,7 +182,7 @@ function HomePage() {
 
 type SortKey = "market_cap_usd" | "market_price_usd" | "transactions_24h" | "hashrate_24h" | "difficulty" | "blocks";
 
-function MarketComparison({ stats, error }: { stats: any; error: string | null }) {
+function MarketComparison({ stats, error }: { stats: any; error: BlockchairFailure | null }) {
   const [sortBy, setSortBy] = useState<SortKey>("market_cap_usd");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
 
