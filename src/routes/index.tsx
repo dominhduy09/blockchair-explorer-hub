@@ -241,6 +241,17 @@ function MarketComparison({ stats, error }: { stats: any; error: string | null }
           Analytics lab →
         </Link>
       </div>
+      {error && (
+        <div
+          role="alert"
+          className="mb-3 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-xs text-destructive-foreground"
+        >
+          <span className="font-mono font-semibold">Stats unavailable:</span>{" "}
+          {/rate limit|too many requests|429/i.test(error)
+            ? "Blockchair API rate limit reached. Add your own API key (top-right) to restore the table."
+            : error}
+        </div>
+      )}
       <div className="overflow-x-auto rounded-lg border border-border bg-card">
         <table className="min-w-full text-sm">
           <thead className="border-b border-border bg-muted/20">
