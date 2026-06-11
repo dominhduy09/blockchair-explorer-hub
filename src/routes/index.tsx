@@ -6,15 +6,18 @@ import { CHAINS } from "@/lib/chains";
 import { GlobalSearch } from "@/components/global-search";
 import { formatNumber, formatUsd } from "@/lib/format";
 
-const statsQuery = queryOptions({
+type StatsResult = { data: Record<string, any>; error: string | null };
+
+const statsQuery = queryOptions<StatsResult>({
   queryKey: ["all-stats"],
   queryFn: async () => {
     try {
-      return await getAllStats();
+      const data = await getAllStats();
+      return { data: (data ?? {}) as Record<string, any>, error: null };
     } catch (err) {
-      // Don't crash SSR / blank the homepage if Blockchair is rate-limited or down.
+      const message = err instanceof Error ? err.message : String(err);
       console.error("[index] getAllStats failed:", err);
-      return {} as Record<string, any>;
+      return { data: {}, error: message };
     }
   },
   staleTime: 30_000,
