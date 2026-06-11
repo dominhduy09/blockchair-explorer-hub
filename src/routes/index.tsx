@@ -12,7 +12,18 @@ const statsQuery = queryOptions<StatsResult>({
   queryKey: ["all-stats"],
   queryFn: async () => {
     // getAllStats returns { data, error } and never throws — see blockchair.functions.ts
-    return (await getAllStats()) as StatsResult;
+    const result = (await getAllStats()) as StatsResult;
+    if (result.error) {
+      console.error("[Blockchair] getAllStats failed:", {
+        status: result.error.status,
+        endpoint: result.error.path,
+        url: result.error.url,
+        params: result.error.params,
+        upstreamMessage: result.error.upstreamMessage,
+        full: result.error,
+      });
+    }
+    return result;
   },
   staleTime: 30_000,
   retry: false,
