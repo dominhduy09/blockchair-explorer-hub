@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { GlobalSearch } from "./global-search";
+import { ApiKeyDialog } from "./api-key-dialog";
 
 const NAV = [
   { to: "/chains", label: "Chains" },
@@ -40,6 +41,7 @@ export function SiteHeader() {
           >
             API docs
           </a>
+          <ApiKeyDialog />
         </nav>
       </div>
     </header>

@@ -1,17 +1,35 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { CHAIN_SLUGS } from "./chains";
+import { BLOCKCHAIR_KEY_PATTERN } from "./api-key-store";
 
 const BASE = "https://api.blockchair.com";
 
 const chainSchema = z.enum(CHAIN_SLUGS as [string, ...string[]]);
 
+// Reads the per-user Blockchair key from the request header attached by
+// `attachBlockchairKey`. Falls back to the project-default env key.
+// Shape-validates before use so an attacker can't smuggle arbitrary
+// query-string content via the header.
+function resolveApiKey(override?: string): string | undefined {
+  if (override && BLOCKCHAIR_KEY_PATTERN.test(override)) return override;
+  try {
+    const header = getRequestHeader("x-blockchair-key");
+    if (header && BLOCKCHAIR_KEY_PATTERN.test(header)) return header;
+  } catch {
+    // not inside a request context
+  }
+  return process.env.BLOCKCHAIR_API_KEY || undefined;
+}
+
 async function bcFetch(
   path: string,
   params: Record<string, string | number | undefined> = {},
   init: RequestInit = {},
+  keyOverride?: string,
 ) {
-  const key = process.env.BLOCKCHAIR_API_KEY;
+  const key = resolveApiKey(keyOverride);
   const url = new URL(`${BASE}${path}`);
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));
@@ -35,6 +53,36 @@ async function bcFetch(
   }
   return json;
 }
+
+// ============================================================================
+// API key validation
+// ============================================================================
+
+export const validateBlockchairKey = createServerFn({ method: "POST" })
+  .inputValidator((input: { key: string }) => ({
+    key: z
+      .string()
+      .trim()
+      .regex(BLOCKCHAIR_KEY_PATTERN, "Invalid key format")
+      .parse(input.key),
+  }))
+  .handler(async ({ data }) => {
+    try {
+      const out = await bcFetch("/stats", {}, {}, data.key);
+      const ctx = out?.context ?? {};
+      // Blockchair returns api info when an authenticated key is used.
+      const info = ctx?.api ?? {};
+      return {
+        valid: true,
+        plan: info?.["current_plan"] ?? null,
+        remainingRequests:
+          info?.["requests_left"] ?? info?.["remaining_requests"] ?? null,
+        serverTime: ctx?.server_time ?? null,
+      };
+    } catch (e) {
+      return { valid: false, error: (e as Error).message };
+    }
+  });
 
 // ============================================================================
 // Stats
