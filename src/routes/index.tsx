@@ -55,7 +55,10 @@ const FEATURE_MAP: { to: string; title: string; desc: string; endpoint: string }
 ];
 
 function HomePage() {
-  const { data: stats } = useSuspenseQuery(statsQuery);
+  const { data: result } = useSuspenseQuery(statsQuery);
+  const stats = result.data;
+  const statsError = result.error;
+
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12">
