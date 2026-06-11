@@ -166,7 +166,8 @@ function HomePage() {
       </section>
 
       {/* Market comparison */}
-      <MarketComparison stats={stats} />
+      <MarketComparison stats={stats} error={statsError} />
+
 
       {/* What you can do */}
       <section className="mt-12 sm:mt-16 grid grid-cols-1 gap-4 md:grid-cols-3">
