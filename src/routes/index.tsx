@@ -1,24 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { getAllStats } from "@/lib/blockchair.functions";
+import { getAllStats, type BlockchairFailure } from "@/lib/blockchair.functions";
 import { CHAINS } from "@/lib/chains";
 import { GlobalSearch } from "@/components/global-search";
 import { formatNumber, formatUsd } from "@/lib/format";
 
-type StatsResult = { data: Record<string, any>; error: string | null };
+type StatsResult = { data: Record<string, any>; error: BlockchairFailure | null };
 
 const statsQuery = queryOptions<StatsResult>({
   queryKey: ["all-stats"],
   queryFn: async () => {
-    try {
-      const data = await getAllStats();
-      return { data: (data ?? {}) as Record<string, any>, error: null };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[index] getAllStats failed:", err);
-      return { data: {}, error: message };
-    }
+    // getAllStats returns { data, error } and never throws — see blockchair.functions.ts
+    return (await getAllStats()) as StatsResult;
   },
   staleTime: 30_000,
   retry: false,
@@ -188,7 +182,7 @@ function HomePage() {
 
 type SortKey = "market_cap_usd" | "market_price_usd" | "transactions_24h" | "hashrate_24h" | "difficulty" | "blocks";
 
-function MarketComparison({ stats, error }: { stats: any; error: string | null }) {
+function MarketComparison({ stats, error }: { stats: any; error: BlockchairFailure | null }) {
   const [sortBy, setSortBy] = useState<SortKey>("market_cap_usd");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
 
@@ -244,12 +238,29 @@ function MarketComparison({ stats, error }: { stats: any; error: string | null }
       {error && (
         <div
           role="alert"
-          className="mb-3 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-xs text-destructive-foreground"
+          className="mb-3 space-y-2 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-xs text-destructive-foreground"
         >
-          <span className="font-mono font-semibold">Stats unavailable:</span>{" "}
-          {/rate limit|too many requests|429/i.test(error)
-            ? "Blockchair API rate limit reached. Add your own API key (top-right) to restore the table."
-            : error}
+          <div>
+            <span className="font-mono font-semibold">Stats unavailable</span>{" "}
+            <span className="rounded bg-destructive/20 px-1.5 py-0.5 font-mono">
+              HTTP {error.status || "—"}
+            </span>{" "}
+            {/rate limit|too many requests|429/i.test(error.upstreamMessage) || error.status === 429
+              ? "— Blockchair rate limit reached. Add your own API key (top-right) to restore the table."
+              : `— ${error.upstreamMessage}`}
+          </div>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono text-[11px] text-muted-foreground">
+            <dt>endpoint</dt>
+            <dd className="break-all text-foreground">{error.path}</dd>
+            <dt>url</dt>
+            <dd className="break-all text-foreground">{error.url}</dd>
+            <dt>params</dt>
+            <dd className="break-all text-foreground">
+              {Object.keys(error.params).length === 0 ? "—" : JSON.stringify(error.params)}
+            </dd>
+            <dt>upstream</dt>
+            <dd className="break-words text-foreground">{error.upstreamMessage}</dd>
+          </dl>
         </div>
       )}
       <div className="overflow-x-auto rounded-lg border border-border bg-card">

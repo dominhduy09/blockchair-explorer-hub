@@ -23,6 +23,24 @@ function resolveApiKey(override?: string): string | undefined {
   return process.env.BLOCKCHAIR_API_KEY || undefined;
 }
 
+export type BlockchairFailure = {
+  status: number;
+  url: string;
+  path: string;
+  params: Record<string, string>;
+  upstreamMessage: string;
+  message: string;
+};
+
+export class BlockchairError extends Error {
+  failure: BlockchairFailure;
+  constructor(failure: BlockchairFailure) {
+    super(failure.message);
+    this.name = "BlockchairError";
+    this.failure = failure;
+  }
+}
+
 async function bcFetch(
   path: string,
   params: Record<string, string | number | undefined> = {},
@@ -31,10 +49,19 @@ async function bcFetch(
 ) {
   const key = resolveApiKey(keyOverride);
   const url = new URL(`${BASE}${path}`);
+  const safeParams: Record<string, string> = {};
   for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, String(v));
+    if (v !== undefined && v !== null && v !== "") {
+      const sv = String(v);
+      url.searchParams.set(k, sv);
+      safeParams[k] = sv;
+    }
   }
   if (key) url.searchParams.set("key", key);
+
+  // Build a redacted URL for diagnostics (never include the API key)
+  const redacted = new URL(url.toString());
+  redacted.searchParams.delete("key");
 
   const res = await fetch(url.toString(), {
     ...init,
@@ -48,8 +75,19 @@ async function bcFetch(
     // ignore
   }
   if (!res.ok) {
-    const msg = json?.context?.error || `Upstream error ${res.status}`;
-    throw new Error(`Blockchair: ${msg}`);
+    const upstream =
+      json?.context?.error ||
+      (typeof json?.data === "string" ? json.data : null) ||
+      text?.slice(0, 200) ||
+      `Upstream error ${res.status}`;
+    throw new BlockchairError({
+      status: res.status,
+      url: redacted.toString(),
+      path,
+      params: safeParams,
+      upstreamMessage: upstream,
+      message: `Blockchair ${res.status}: ${upstream}`,
+    });
   }
   return json;
 }
@@ -70,7 +108,6 @@ export const validateBlockchairKey = createServerFn({ method: "POST" })
     try {
       const out = await bcFetch("/stats", {}, {}, data.key);
       const ctx = out?.context ?? {};
-      // Blockchair returns api info when an authenticated key is used.
       const info = ctx?.api ?? {};
       return {
         valid: true,
@@ -88,10 +125,37 @@ export const validateBlockchairKey = createServerFn({ method: "POST" })
 // Stats
 // ============================================================================
 
-export const getAllStats = createServerFn({ method: "GET" }).handler(async () => {
-  const data = await bcFetch("/stats");
-  return data?.data ?? {};
-});
+export type GetAllStatsResult = {
+  data: Record<string, any>;
+  error: BlockchairFailure | null;
+};
+
+export const getAllStats = createServerFn({ method: "GET" }).handler(
+  async (): Promise<GetAllStatsResult> => {
+    try {
+      const out = await bcFetch("/stats");
+      return { data: (out?.data ?? {}) as Record<string, any>, error: null };
+    } catch (e) {
+      if (e instanceof BlockchairError) {
+        console.error("[getAllStats] blockchair failure:", e.failure);
+        return { data: {}, error: e.failure };
+      }
+      const message = e instanceof Error ? e.message : String(e);
+      console.error("[getAllStats] unexpected failure:", e);
+      return {
+        data: {},
+        error: {
+          status: 0,
+          url: `${BASE}/stats`,
+          path: "/stats",
+          params: {},
+          upstreamMessage: message,
+          message,
+        },
+      };
+    }
+  },
+);
 
 export const getChainStats = createServerFn({ method: "GET" })
   .inputValidator((input: { chain: string }) => ({ chain: chainSchema.parse(input.chain) }))
