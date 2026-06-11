@@ -6,15 +6,18 @@ import { CHAINS } from "@/lib/chains";
 import { GlobalSearch } from "@/components/global-search";
 import { formatNumber, formatUsd } from "@/lib/format";
 
-const statsQuery = queryOptions({
+type StatsResult = { data: Record<string, any>; error: string | null };
+
+const statsQuery = queryOptions<StatsResult>({
   queryKey: ["all-stats"],
   queryFn: async () => {
     try {
-      return await getAllStats();
+      const data = await getAllStats();
+      return { data: (data ?? {}) as Record<string, any>, error: null };
     } catch (err) {
-      // Don't crash SSR / blank the homepage if Blockchair is rate-limited or down.
+      const message = err instanceof Error ? err.message : String(err);
       console.error("[index] getAllStats failed:", err);
-      return {} as Record<string, any>;
+      return { data: {}, error: message };
     }
   },
   staleTime: 30_000,
@@ -52,7 +55,10 @@ const FEATURE_MAP: { to: string; title: string; desc: string; endpoint: string }
 ];
 
 function HomePage() {
-  const { data: stats } = useSuspenseQuery(statsQuery);
+  const { data: result } = useSuspenseQuery(statsQuery);
+  const stats = result.data;
+  const statsError = result.error;
+
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12">
@@ -160,7 +166,8 @@ function HomePage() {
       </section>
 
       {/* Market comparison */}
-      <MarketComparison stats={stats} />
+      <MarketComparison stats={stats} error={statsError} />
+
 
       {/* What you can do */}
       <section className="mt-12 sm:mt-16 grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -181,7 +188,7 @@ function HomePage() {
 
 type SortKey = "market_cap_usd" | "market_price_usd" | "transactions_24h" | "hashrate_24h" | "difficulty" | "blocks";
 
-function MarketComparison({ stats }: { stats: any }) {
+function MarketComparison({ stats, error }: { stats: any; error: string | null }) {
   const [sortBy, setSortBy] = useState<SortKey>("market_cap_usd");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
 
@@ -234,6 +241,17 @@ function MarketComparison({ stats }: { stats: any }) {
           Analytics lab →
         </Link>
       </div>
+      {error && (
+        <div
+          role="alert"
+          className="mb-3 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-xs text-destructive-foreground"
+        >
+          <span className="font-mono font-semibold">Stats unavailable:</span>{" "}
+          {/rate limit|too many requests|429/i.test(error)
+            ? "Blockchair API rate limit reached. Add your own API key (top-right) to restore the table."
+            : error}
+        </div>
+      )}
       <div className="overflow-x-auto rounded-lg border border-border bg-card">
         <table className="min-w-full text-sm">
           <thead className="border-b border-border bg-muted/20">
