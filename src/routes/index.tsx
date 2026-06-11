@@ -8,8 +8,17 @@ import { formatNumber, formatUsd } from "@/lib/format";
 
 const statsQuery = queryOptions({
   queryKey: ["all-stats"],
-  queryFn: () => getAllStats(),
+  queryFn: async () => {
+    try {
+      return await getAllStats();
+    } catch (err) {
+      // Don't crash SSR / blank the homepage if Blockchair is rate-limited or down.
+      console.error("[index] getAllStats failed:", err);
+      return {} as Record<string, any>;
+    }
+  },
   staleTime: 30_000,
+  retry: false,
 });
 
 export const Route = createFileRoute("/")({
