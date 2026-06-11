@@ -1,24 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { getAllStats } from "@/lib/blockchair.functions";
+import { getAllStats, type BlockchairFailure } from "@/lib/blockchair.functions";
 import { CHAINS } from "@/lib/chains";
 import { GlobalSearch } from "@/components/global-search";
 import { formatNumber, formatUsd } from "@/lib/format";
 
-type StatsResult = { data: Record<string, any>; error: string | null };
+type StatsResult = { data: Record<string, any>; error: BlockchairFailure | null };
 
 const statsQuery = queryOptions<StatsResult>({
   queryKey: ["all-stats"],
   queryFn: async () => {
-    try {
-      const data = await getAllStats();
-      return { data: (data ?? {}) as Record<string, any>, error: null };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error("[index] getAllStats failed:", err);
-      return { data: {}, error: message };
-    }
+    // getAllStats returns { data, error } and never throws — see blockchair.functions.ts
+    return (await getAllStats()) as StatsResult;
   },
   staleTime: 30_000,
   retry: false,
