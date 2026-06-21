@@ -144,10 +144,10 @@ export const validateProviderKey = createServerFn({ method: "POST" })
     }
     try {
       const res = await p.validateKey(data.key);
-      return { valid: true, info: res.info ?? null };
+      return { valid: true as const, info: (res.info ?? null) as Record<string, any> | null, error: null as string | null };
     } catch (e) {
       const msg = e instanceof ProviderError ? e.failure.message : (e as Error).message;
-      return { valid: false, error: msg };
+      return { valid: false as const, info: null as Record<string, any> | null, error: msg };
     }
   });
 

@@ -42,5 +42,5 @@ export interface Provider {
   // Capability handlers. May be undefined; supports() must agree.
   getAllStats?(opts: { key?: string }): Promise<StatsMap>;
   // Key validation: returns a small status object or throws ProviderError.
-  validateKey?(key: string): Promise<{ ok: true; info?: Record<string, unknown> }>;
+  validateKey?(key: string): Promise<{ ok: true; info?: Record<string, any> | null }>;
 }
