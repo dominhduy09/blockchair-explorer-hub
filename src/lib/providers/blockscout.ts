@@ -117,7 +117,7 @@ export const blockscoutProvider: Provider = {
         message: "Blockscout: all instances failed",
       });
     }
-    return Object.fromEntries(ok) as StatusOrMap(ok);
+    return Object.fromEntries(ok) as StatsMap;
   },
   async validateKey(key) {
     // Hit the unified Pro API for chain 1 — this is the endpoint Pro keys authenticate against.
@@ -127,7 +127,3 @@ export const blockscoutProvider: Provider = {
   },
 };
 
-// Tiny helper so TS doesn't widen the entries tuple unhelpfully.
-function StatusOrMap(ok: ReadonlyArray<readonly [string, StatsMap[string]]>): StatsMap {
-  return Object.fromEntries(ok) as StatsMap;
-}
