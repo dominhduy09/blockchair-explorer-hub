@@ -16,7 +16,7 @@ const CHAIN_IDS: Record<string, number> = {
   "gnosis-chain": 100,
 };
 
-export const ETHERSCAN_KEY_PATTERN = /^[A-Z0-9]{30,40}$/;
+export const ETHERSCAN_KEY_PATTERN = /^[A-Za-z0-9]{20,80}$/;
 
 async function esFetch(params: Record<string, string | number>, key: string) {
   const url = new URL(BASE);
