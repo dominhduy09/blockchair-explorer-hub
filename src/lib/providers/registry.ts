@@ -26,8 +26,8 @@ export const PROVIDER_META: Record<
   blockscout: {
     label: "Blockscout",
     requiresKey: false,
-    keyHint: "No key required. EVM chains only.",
-    getKeyUrl: "https://docs.blockscout.com/",
+    keyHint: "Optional Pro key (api.blockscout.com). Public instances work without one.",
+    getKeyUrl: "https://blockscout.com/pricing",
   },
   etherscan: {
     label: "Etherscan (v2)",

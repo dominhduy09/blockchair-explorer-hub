@@ -18,7 +18,7 @@ const KEY_STORAGE_PREFIX = "provider_key_";
 // no longer all start with `cqt_`).
 export const KEY_PATTERNS: Record<ProviderId, RegExp> = {
   blockchair: /^[A-Za-z0-9_.\-]{8,256}$/,
-  blockscout: /^.{0,0}$/, // no key
+  blockscout: /^[A-Za-z0-9_.\-]{20,256}$/,
   etherscan: /^[A-Za-z0-9]{20,80}$/,
   covalent: /^[A-Za-z0-9_.\-]{20,120}$/,
 };

@@ -12,8 +12,35 @@ const INSTANCES: Record<string, string> = {
   "ethereum-classic": "https://etc.blockscout.com",
 };
 
-async function fetchInstanceStats(slug: string, host: string) {
-  const url = `${host}/api/v2/stats`;
+// Unified Blockscout API (Pro) — chain id keyed.
+const UNIFIED_BASE = "https://api.blockscout.com";
+const UNIFIED_CHAIN_IDS: Record<string, number> = {
+  ethereum: 1,
+  optimism: 10,
+  "gnosis-chain": 100,
+  polygon: 137,
+  base: 8453,
+  "arbitrum-one": 42161,
+};
+
+function withKey(url: string, key?: string) {
+  if (!key) return url;
+  const u = new URL(url);
+  u.searchParams.set("apikey", key);
+  return u.toString();
+}
+
+function redact(url: string) {
+  try {
+    const u = new URL(url);
+    if (u.searchParams.has("apikey")) u.searchParams.set("apikey", "***");
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
+async function getJSON(url: string, providerPath: string): Promise<any> {
   const res = await fetch(url, { headers: { Accept: "application/json" } });
   const text = await res.text();
   let json: any = null;
@@ -26,20 +53,19 @@ async function fetchInstanceStats(slug: string, host: string) {
     const failure: ProviderFailure = {
       provider: "blockscout",
       status: res.status,
-      url,
-      path: `/api/v2/stats (${slug})`,
+      url: redact(url),
+      path: providerPath,
       params: {},
-      upstreamMessage: text?.slice(0, 200) || `HTTP ${res.status}`,
-      message: `Blockscout ${slug} ${res.status}`,
+      upstreamMessage:
+        json?.message || (typeof json?.error === "string" ? json.error : null) || text?.slice(0, 200) || `HTTP ${res.status}`,
+      message: `Blockscout ${res.status}: ${json?.message || "error"}`,
     };
     throw new ProviderError(failure);
   }
   return json;
 }
 
-function normalize(slug: string, raw: any): StatsMap[string] {
-  // Blockscout returns shape: { total_blocks, average_block_time, coin_price,
-  // market_cap, total_transactions, gas_prices, ... }
+function normalize(raw: any): StatsMap[string] {
   const price = raw?.coin_price ? Number(raw.coin_price) : null;
   const cap = raw?.market_cap ? Number(raw.market_cap) : null;
   const blocks = raw?.total_blocks ? Number(raw.total_blocks) : null;
@@ -62,16 +88,18 @@ export const blockscoutProvider: Provider = {
   label: "Blockscout",
   supports(cap: Capability, chain?: string) {
     if (cap !== "stats") return false;
-    if (!chain) return true; // multi-chain stats: aggregate
+    if (!chain) return true;
     return chain in INSTANCES;
   },
-  async getAllStats() {
-    // Aggregate per-instance, tolerating individual failures.
+  async getAllStats({ key }: { key?: string } = {}) {
     const entries = await Promise.all(
       Object.entries(INSTANCES).map(async ([slug, host]) => {
         try {
-          const raw = await fetchInstanceStats(slug, host);
-          return [slug, normalize(slug, raw)] as const;
+          const raw = await getJSON(
+            withKey(`${host}/api/v2/stats`, key),
+            `/api/v2/stats (${slug})`,
+          );
+          return [slug, normalize(raw)] as const;
         } catch {
           return null;
         }
@@ -79,8 +107,7 @@ export const blockscoutProvider: Provider = {
     );
     const ok = entries.filter((e): e is readonly [string, StatsMap[string]] => e !== null);
     if (ok.length === 0) {
-      // Surface a representative failure if every instance failed.
-      const failure: ProviderFailure = {
+      throw new ProviderError({
         provider: "blockscout",
         status: 0,
         url: "multiple",
@@ -88,9 +115,15 @@ export const blockscoutProvider: Provider = {
         params: {},
         upstreamMessage: "All Blockscout instances failed",
         message: "Blockscout: all instances failed",
-      };
-      throw new ProviderError(failure);
+      });
     }
     return Object.fromEntries(ok) as StatsMap;
   },
+  async validateKey(key) {
+    // Hit the unified Pro API for chain 1 — this is the endpoint Pro keys authenticate against.
+    const url = withKey(`${UNIFIED_BASE}/${UNIFIED_CHAIN_IDS.ethereum}/api/v2/stats`, key);
+    await getJSON(url, `/${UNIFIED_CHAIN_IDS.ethereum}/api/v2/stats`);
+    return { ok: true };
+  },
 };
+
