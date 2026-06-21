@@ -32,13 +32,13 @@ export const PROVIDER_META: Record<
   etherscan: {
     label: "Etherscan (v2)",
     requiresKey: true,
-    keyHint: "Free key at etherscan.io. Covers EVM chains via chainid.",
+    keyHint: "Free key from etherscan.io/myapikey. Typically 34 alphanumeric chars.",
     getKeyUrl: "https://etherscan.io/myapikey",
   },
   covalent: {
-    label: "Covalent",
+    label: "Covalent / GoldRush",
     requiresKey: true,
-    keyHint: "Free key at goldrush.dev. Multi-chain block heights.",
+    keyHint: "Free key from goldrush.dev. Paste the full key string.",
     getKeyUrl: "https://goldrush.dev/",
   },
 };

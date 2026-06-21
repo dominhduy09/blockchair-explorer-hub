@@ -12,11 +12,15 @@ const PRIMARY_STORAGE = "provider_primary";
 const KEY_STORAGE_PREFIX = "provider_key_";
 
 // Per-provider key shape patterns. Conservative; reject obvious garbage.
+// Lenient shape patterns — providers validate the key for real on the server.
+// Be permissive to accept the many key formats providers actually issue
+// (e.g. Etherscan keys are mixed-case alphanumeric, GoldRush/Covalent keys
+// no longer all start with `cqt_`).
 export const KEY_PATTERNS: Record<ProviderId, RegExp> = {
-  blockchair: /^[A-Za-z0-9_-]{16,128}$/,
+  blockchair: /^[A-Za-z0-9_.\-]{8,256}$/,
   blockscout: /^.{0,0}$/, // no key
-  etherscan: /^[A-Z0-9]{30,40}$/,
-  covalent: /^cqt_[A-Za-z0-9_-]{20,80}$/,
+  etherscan: /^[A-Za-z0-9]{20,80}$/,
+  covalent: /^[A-Za-z0-9_.\-]{20,120}$/,
 };
 
 // Back-compat with the earlier single-key store + dialog.
