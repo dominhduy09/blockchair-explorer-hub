@@ -165,7 +165,8 @@ function HomePage() {
       </section>
 
       {/* Market comparison */}
-      <MarketComparison stats={stats} error={statsError} />
+      <MarketComparison stats={stats} failures={failures} servingProvider={servingProvider} />
+
 
 
       {/* What you can do */}
@@ -187,9 +188,18 @@ function HomePage() {
 
 type SortKey = "market_cap_usd" | "market_price_usd" | "transactions_24h" | "hashrate_24h" | "difficulty" | "blocks";
 
-function MarketComparison({ stats, error }: { stats: any; error: BlockchairFailure | null }) {
+function MarketComparison({
+  stats,
+  failures,
+  servingProvider,
+}: {
+  stats: any;
+  failures: import("@/lib/providers/types").ProviderFailure[];
+  servingProvider: import("@/lib/providers/types").ProviderId | null;
+}) {
   const [sortBy, setSortBy] = useState<SortKey>("market_cap_usd");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
+
 
   const rows = CHAINS.map((c) => {
     const s = stats?.[c.slug]?.data ?? stats?.[c.slug] ?? null;
@@ -240,34 +250,57 @@ function MarketComparison({ stats, error }: { stats: any; error: BlockchairFailu
           Analytics lab →
         </Link>
       </div>
-      {error && (
+      {failures.length > 0 && (
         <div
           role="alert"
-          className="mb-3 space-y-2 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-xs text-destructive-foreground"
+          className="mb-3 space-y-3 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-xs text-destructive-foreground"
         >
-          <div>
-            <span className="font-mono font-semibold">Stats unavailable</span>{" "}
-            <span className="rounded bg-destructive/20 px-1.5 py-0.5 font-mono">
-              HTTP {error.status || "—"}
-            </span>{" "}
-            {/rate limit|too many requests|429/i.test(error.upstreamMessage) || error.status === 429
-              ? "— Blockchair rate limit reached. Add your own API key (top-right) to restore the table."
-              : `— ${error.upstreamMessage}`}
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+              <span className="font-mono font-semibold">
+                {servingProvider ? "Stats served with fallback" : "Stats unavailable"}
+              </span>{" "}
+              {servingProvider ? (
+                <span className="text-muted-foreground">
+                  — primary provider failed; served by{" "}
+                  <span className="font-mono text-foreground">{servingProvider}</span>.
+                </span>
+              ) : (
+                <span className="text-muted-foreground">
+                  — every configured provider failed. Add an API key (Providers, top-right)
+                  or switch primary provider.
+                </span>
+              )}
+            </div>
           </div>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono text-[11px] text-muted-foreground">
-            <dt>endpoint</dt>
-            <dd className="break-all text-foreground">{error.path}</dd>
-            <dt>url</dt>
-            <dd className="break-all text-foreground">{error.url}</dd>
-            <dt>params</dt>
-            <dd className="break-all text-foreground">
-              {Object.keys(error.params).length === 0 ? "—" : JSON.stringify(error.params)}
-            </dd>
-            <dt>upstream</dt>
-            <dd className="break-words text-foreground">{error.upstreamMessage}</dd>
-          </dl>
+          <ul className="space-y-2">
+            {failures.map((f, i) => (
+              <li key={`${f.provider}-${i}`} className="rounded border border-destructive/30 bg-background/30 p-2">
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="rounded bg-destructive/20 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider">
+                    {f.provider}
+                  </span>
+                  <span className="rounded bg-destructive/20 px-1.5 py-0.5 font-mono text-[10px]">
+                    HTTP {f.status || "—"}
+                  </span>
+                  <span className="break-words text-foreground">{f.upstreamMessage}</span>
+                </div>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 font-mono text-[10px] text-muted-foreground">
+                  <dt>endpoint</dt>
+                  <dd className="break-all text-foreground">{f.path}</dd>
+                  <dt>url</dt>
+                  <dd className="break-all text-foreground">{f.url || "—"}</dd>
+                  <dt>params</dt>
+                  <dd className="break-all text-foreground">
+                    {Object.keys(f.params).length === 0 ? "—" : JSON.stringify(f.params)}
+                  </dd>
+                </dl>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
+
       <div className="overflow-x-auto rounded-lg border border-border bg-card">
         <table className="min-w-full text-sm">
           <thead className="border-b border-border bg-muted/20">
