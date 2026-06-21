@@ -57,7 +57,10 @@ function HomePage() {
   const stats = result.data;
   const failures = result.failures;
   const servingProvider = result.provider;
+
+  return (
     <div className="mx-auto max-w-7xl px-4 py-12">
+
       {/* Hero */}
       <section className="mx-auto max-w-3xl text-center">
         <h1 className="font-mono text-4xl font-bold tracking-tight sm:text-5xl">
