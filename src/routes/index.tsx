@@ -1,27 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { getAllStats, type BlockchairFailure } from "@/lib/blockchair.functions";
+import { getAllStats, type GetAllStatsResult } from "@/lib/blockchair.functions";
 import { CHAINS } from "@/lib/chains";
 import { GlobalSearch } from "@/components/global-search";
 import { formatNumber, formatUsd } from "@/lib/format";
 
-type StatsResult = { data: Record<string, any>; error: BlockchairFailure | null };
-
-const statsQuery = queryOptions<StatsResult>({
+const statsQuery = queryOptions<GetAllStatsResult>({
   queryKey: ["all-stats"],
   queryFn: async () => {
-    // getAllStats returns { data, error } and never throws — see blockchair.functions.ts
-    const result = (await getAllStats()) as StatsResult;
-    if (result.error) {
-      console.error("[Blockchair] getAllStats failed:", {
-        status: result.error.status,
-        endpoint: result.error.path,
-        url: result.error.url,
-        params: result.error.params,
-        upstreamMessage: result.error.upstreamMessage,
-        full: result.error,
-      });
+    const result = (await getAllStats()) as GetAllStatsResult;
+    if (result.failures.length > 0) {
+      console.error("[providers] getAllStats failures:", result.failures);
+    }
+    if (result.provider) {
+      console.info(`[providers] getAllStats served by: ${result.provider}`);
     }
     return result;
   },
@@ -62,10 +55,8 @@ const FEATURE_MAP: { to: string; title: string; desc: string; endpoint: string }
 function HomePage() {
   const { data: result } = useSuspenseQuery(statsQuery);
   const stats = result.data;
-  const statsError = result.error;
-
-
-  return (
+  const failures = result.failures;
+  const servingProvider = result.provider;
     <div className="mx-auto max-w-7xl px-4 py-12">
       {/* Hero */}
       <section className="mx-auto max-w-3xl text-center">
