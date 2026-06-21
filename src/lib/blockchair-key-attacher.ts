@@ -1,15 +1,20 @@
 import { createMiddleware } from "@tanstack/react-start";
-import { getStoredBlockchairKey } from "./api-key-store";
+import { getStoredKey, getStoredPrimary } from "./api-key-store";
+import type { ProviderId } from "./providers/types";
 
-// Attaches the user's stored Blockchair API key (if any, and only if it
-// passes shape validation) as a request header. The server reads the header
-// inside `bcFetch` and uses it in place of the project-default key.
-// The key never leaves the user's browser except in this header.
+const PROVIDERS: ProviderId[] = ["blockchair", "blockscout", "etherscan", "covalent"];
+
+// Attaches per-provider API keys and the user's primary provider choice
+// to every server-fn RPC. Keys are validated server-side before use.
 export const attachBlockchairKey = createMiddleware({ type: "function" }).client(
   async ({ next }) => {
-    const key = getStoredBlockchairKey();
-    return next({
-      headers: key ? { "x-blockchair-key": key } : {},
-    });
+    const headers: Record<string, string> = {};
+    for (const p of PROVIDERS) {
+      const k = getStoredKey(p);
+      if (k) headers[`x-${p}-key`] = k;
+    }
+    const primary = getStoredPrimary();
+    if (primary) headers["x-provider-primary"] = primary;
+    return next({ headers });
   },
 );

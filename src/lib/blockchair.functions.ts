@@ -2,16 +2,34 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { CHAIN_SLUGS } from "./chains";
-import { BLOCKCHAIR_KEY_PATTERN } from "./api-key-store";
+import {
+  BLOCKCHAIR_KEY_PATTERN,
+  KEY_PATTERNS,
+  isValidKeyShape,
+} from "./api-key-store";
+import { PROVIDERS } from "./providers/registry";
+import { routeAllStats, type Keys } from "./providers/router";
+import type { ProviderFailure, ProviderId } from "./providers/types";
+import { ProviderError } from "./providers/types";
 
 const BASE = "https://api.blockchair.com";
 
 const chainSchema = z.enum(CHAIN_SLUGS as [string, ...string[]]);
 
+// Back-compat alias for callers that still import BlockchairFailure.
+export type BlockchairFailure = ProviderFailure;
+
+export class BlockchairError extends Error {
+  failure: BlockchairFailure;
+  constructor(failure: BlockchairFailure) {
+    super(failure.message);
+    this.name = "BlockchairError";
+    this.failure = failure;
+  }
+}
+
 // Reads the per-user Blockchair key from the request header attached by
 // `attachBlockchairKey`. Falls back to the project-default env key.
-// Shape-validates before use so an attacker can't smuggle arbitrary
-// query-string content via the header.
 function resolveApiKey(override?: string): string | undefined {
   if (override && BLOCKCHAIR_KEY_PATTERN.test(override)) return override;
   try {
@@ -23,22 +41,34 @@ function resolveApiKey(override?: string): string | undefined {
   return process.env.BLOCKCHAIR_API_KEY || undefined;
 }
 
-export type BlockchairFailure = {
-  status: number;
-  url: string;
-  path: string;
-  params: Record<string, string>;
-  upstreamMessage: string;
-  message: string;
-};
-
-export class BlockchairError extends Error {
-  failure: BlockchairFailure;
-  constructor(failure: BlockchairFailure) {
-    super(failure.message);
-    this.name = "BlockchairError";
-    this.failure = failure;
+// Reads all per-provider keys from request headers (shape-validated).
+function resolveAllKeys(): Keys {
+  const keys: Keys = {};
+  const ids: ProviderId[] = ["blockchair", "blockscout", "etherscan", "covalent"];
+  for (const id of ids) {
+    try {
+      const h = getRequestHeader(`x-${id}-key`);
+      if (h && KEY_PATTERNS[id].test(h)) keys[id] = h;
+    } catch {
+      // not in a request
+    }
   }
+  if (!keys.blockchair && process.env.BLOCKCHAIR_API_KEY) {
+    keys.blockchair = process.env.BLOCKCHAIR_API_KEY;
+  }
+  return keys;
+}
+
+function resolvePrimary(): ProviderId | undefined {
+  try {
+    const h = getRequestHeader("x-provider-primary");
+    if (h === "blockchair" || h === "blockscout" || h === "etherscan" || h === "covalent") {
+      return h;
+    }
+  } catch {
+    // not in a request
+  }
+  return undefined;
 }
 
 async function bcFetch(
@@ -81,6 +111,7 @@ async function bcFetch(
       text?.slice(0, 200) ||
       `Upstream error ${res.status}`;
     throw new BlockchairError({
+      provider: "blockchair",
       status: res.status,
       url: redacted.toString(),
       path,
@@ -93,16 +124,36 @@ async function bcFetch(
 }
 
 // ============================================================================
-// API key validation
+// API key validation (generic across providers + back-compat wrapper)
 // ============================================================================
+
+const providerIdSchema = z.enum(["blockchair", "blockscout", "etherscan", "covalent"]);
+
+export const validateProviderKey = createServerFn({ method: "POST" })
+  .inputValidator((input: { provider: string; key: string }) => ({
+    provider: providerIdSchema.parse(input.provider),
+    key: z.string().trim().min(1).max(256).parse(input.key),
+  }))
+  .handler(async ({ data }) => {
+    const p = PROVIDERS[data.provider];
+    if (!p.validateKey) {
+      return { valid: false, error: `${p.label} does not require a key.` };
+    }
+    if (!isValidKeyShape(data.provider, data.key)) {
+      return { valid: false, error: "Key format does not match this provider." };
+    }
+    try {
+      const res = await p.validateKey(data.key);
+      return { valid: true as const, info: (res.info ?? null) as Record<string, any> | null, error: null as string | null };
+    } catch (e) {
+      const msg = e instanceof ProviderError ? e.failure.message : (e as Error).message;
+      return { valid: false as const, info: null as Record<string, any> | null, error: msg };
+    }
+  });
 
 export const validateBlockchairKey = createServerFn({ method: "POST" })
   .inputValidator((input: { key: string }) => ({
-    key: z
-      .string()
-      .trim()
-      .regex(BLOCKCHAIR_KEY_PATTERN, "Invalid key format")
-      .parse(input.key),
+    key: z.string().trim().regex(BLOCKCHAIR_KEY_PATTERN, "Invalid key format").parse(input.key),
   }))
   .handler(async ({ data }) => {
     try {
@@ -112,8 +163,7 @@ export const validateBlockchairKey = createServerFn({ method: "POST" })
       return {
         valid: true,
         plan: info?.["current_plan"] ?? null,
-        remainingRequests:
-          info?.["requests_left"] ?? info?.["remaining_requests"] ?? null,
+        remainingRequests: info?.["requests_left"] ?? info?.["remaining_requests"] ?? null,
         serverTime: ctx?.server_time ?? null,
       };
     } catch (e) {
@@ -122,40 +172,31 @@ export const validateBlockchairKey = createServerFn({ method: "POST" })
   });
 
 // ============================================================================
-// Stats
+// Stats — multi-provider with auto-fallback
 // ============================================================================
 
 export type GetAllStatsResult = {
   data: Record<string, any>;
-  error: BlockchairFailure | null;
+  provider: ProviderId | null;
+  failures: ProviderFailure[];
+  // Back-compat: first failure, or null. Existing UI reads this.
+  error: ProviderFailure | null;
 };
 
 export const getAllStats = createServerFn({ method: "GET" }).handler(
   async (): Promise<GetAllStatsResult> => {
-    try {
-      const out = await bcFetch("/stats");
-      return { data: (out?.data ?? {}) as Record<string, any>, error: null };
-    } catch (e) {
-      if (e instanceof BlockchairError) {
-        console.error("[getAllStats] blockchair failure:", e.failure);
-        return { data: {}, error: e.failure };
-      }
-      const message = e instanceof Error ? e.message : String(e);
-      console.error("[getAllStats] unexpected failure:", e);
-      return {
-        data: {},
-        error: {
-          status: 0,
-          url: `${BASE}/stats`,
-          path: "/stats",
-          params: {},
-          upstreamMessage: message,
-          message,
-        },
-      };
-    }
+    const keys = resolveAllKeys();
+    const primary = resolvePrimary();
+    const result = await routeAllStats(primary, keys);
+    return {
+      data: result.data as Record<string, any>,
+      provider: result.provider,
+      failures: result.failures,
+      error: result.failures[0] ?? null,
+    };
   },
 );
+
 
 export const getChainStats = createServerFn({ method: "GET" })
   .inputValidator((input: { chain: string }) => ({ chain: chainSchema.parse(input.chain) }))
