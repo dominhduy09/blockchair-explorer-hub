@@ -16,7 +16,7 @@ const CHAIN_NAMES: Record<string, string> = {
   "gnosis-chain": "gnosis-mainnet",
 };
 
-export const COVALENT_KEY_PATTERN = /^cqt_[A-Za-z0-9_-]{20,80}$/;
+export const COVALENT_KEY_PATTERN = /^[A-Za-z0-9_.\-]{20,120}$/;
 
 async function cvFetch(path: string, key: string) {
   const url = `${BASE}${path}`;
